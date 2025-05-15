@@ -39,6 +39,31 @@
         tr:nth-child(even) { background-color: #f9f9f9; }
         tr:hover { background-color: #f5f5f5; }
         
+        /* Search Container Styles */
+        .search-container { 
+            margin: 20px 0; 
+            display: flex;
+            align-items: center;
+        }
+        .search-container input { 
+            padding: 8px; 
+            width: 300px; 
+            margin-right: 10px; 
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .search-container button { 
+            padding: 8px 16px; 
+            background-color: #4CAF50; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            border-radius: 4px;
+        }
+        .search-container button:hover { 
+            background-color: #45a049; 
+        }
+        
         /* Modal Styles - Modified to center vertically */
         .modal {
             display: none;
@@ -157,6 +182,10 @@
 <body>
 <h1>User Admin Dashboard</h1>
 <button id="viewAllButton" onclick="initViewUsers()">View All Users</button>
+<div id="searchContainer" class="search-container" style="display: none;">
+    <input type="text" id="searchInput" placeholder="Enter user name or information to search..." onkeydown="handleSearchKeyPress(event)">
+    <button onclick="performSearch()">Search</button>
+</div>
 <div id="status" class="status" style="display: none;"></div>
 <div id="tableContainer"></div>
 
@@ -253,7 +282,7 @@
         }
     }
     
-    // UI class - Handles presentation
+    
     class ViewUI {
         constructor() {
             this.controller = new ViewController();
@@ -264,7 +293,7 @@
         showLoading() {
             this.statusDiv.style.display = 'block';
             this.statusDiv.className = 'status';
-          
+            
         }
         
         showError(message) {
@@ -433,45 +462,104 @@
         }
     }
     
-    // --- EDIT USER FEATURE WITH BOUNDARY-CONTROL-ENTITY PATTERN ---
 
-    // Entity class - Handles data operations and API communication
-    class EditEntity {
-        /**
-         * Fetches a user by ID from the API
-         * @param {string|number} userId - The ID of the user to fetch
-         * @returns {Promise<Object>} - The API response
-         */
-        async fetchUser(userId) {
-            const response = await fetch(`http://localhost:3000/get-user/${userId}`);
-            const data = await response.json();
-            return data;
+    class SearchController {
+        constructor() {
+            this.viewEntity = new ViewEntity();
         }
         
-        /**
-         * Updates a user's information in the database
-         * @param {string|number} userId - The ID of the user to update
-         * @param {Object} userData - The updated user data
-         * @returns {Promise<Object>} - The API response
-         */
-        async updateUser(userId, userData) {
-            const response = await fetch(`http://localhost:3000/update-user/${userId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(userData)
-            });
-            
-            const data = await response.json();
-            return data;
+        async searchUsers(searchTerm) {
+            try {
+                // If search term is empty, return all users
+                if (!searchTerm || searchTerm.trim() === '') {
+                    return await this.viewEntity.fetchAllUsers();
+                }
+                
+                // Get all users first
+                const result = await this.viewEntity.fetchAllUsers();
+                
+                // If there was an error, just pass it through
+                if (!result.success) {
+                    return result;
+                }
+                
+                // Filter users based on search term - business logic in controller
+                // Ensure data is an array to prevent undefined errors
+                const safeData = Array.isArray(result.data) ? result.data : [];
+                
+                const filteredData = safeData.filter(user => {
+                    return Object.values(user).some(value => 
+                        value !== null && 
+                        value !== undefined && 
+                        String(value).toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                });
+                
+                // Return the filtered data
+                return {
+                    success: true,
+                    data: filteredData
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    message: `Error processing search: ${error.message}`
+                };
+            }
         }
     }
+
+    // Search UI class - extends ViewUI to reuse the rendering logic
+    class SearchUI extends ViewUI {
+        constructor() {
+            super();
+            this.searchController = new SearchController();
+            this.searchInput = document.getElementById('searchInput');
+        }
+        
+        showSearchLoading() {
+            this.statusDiv.style.display = 'block';
+            this.statusDiv.className = 'status';
+            this.statusDiv.innerHTML = 'Searching...';
+        }
+        
+        showSearchSuccess(count, searchTerm) {
+            this.statusDiv.style.display = 'block';
+            this.statusDiv.className = 'status success';
+            this.statusDiv.innerHTML = `Found ${count} matching users for "${searchTerm}"`;
+        }
+        
+        async performSearch() {
+            try {
+                const searchTerm = this.searchInput.value.trim();
+                this.showSearchLoading();
+                
+                const result = await this.searchController.searchUsers(searchTerm);
+                
+                if (!result.success) {
+                    // Handle API error response
+                    this.showError(result.message || 'Unknown error occurred');
+                    return;
+                }
+                
+                // Make sure data is defined before accessing its length
+                const userData = result.data || [];
+                this.showSearchSuccess(userData.length, searchTerm);
+                this.renderTable(userData);
+            } catch (error) {
+                // Handle UI-specific errors
+                console.error('UI Error in performSearch:', error);
+                this.showError(`UI error: ${error.message}`);
+            }
+        }
+    }
+    
+
 
     // Controller class - Handles business logic and validation
     class EditController {
         constructor() {
-            this.editEntity = new EditEntity();
+            this.editEntity = new ViewEntity();
         }
         
         /**
@@ -512,7 +600,7 @@
          */
         async getUser(userId) {
             try {
-                const result = await this.editEntity.fetchUser(userId);
+                const result = await this.editEntity.fetchUserById(userId);
                 return result;
             } catch (error) {
                 return { 
@@ -707,8 +795,9 @@
         }
     }
     
-    // Initialize the UI instance
+    // Initialize the UI instances
     let viewUI;
+    let searchUI;
     
     // Global variable for the edit boundary
     let editBoundary;
@@ -717,6 +806,8 @@
     function initViewUsers() {
         // Hide the View All button
         document.getElementById('viewAllButton').style.display = 'none';
+        // Show the search container
+        document.getElementById('searchContainer').style.display = 'block';
         
         // Initialize the view UI if not already done
         if (!viewUI) {
@@ -725,6 +816,26 @@
         
         // Display all users
         viewUI.displayAllUsers();
+    }
+    
+    // Search function
+    function performSearch() {
+        // Initialize the search UI if not already done
+        if (!searchUI) {
+            searchUI = new SearchUI();
+        }
+        
+        // Perform search
+        searchUI.performSearch();
+    }
+    
+    // Handle keyboard events for search input
+    function handleSearchKeyPress(event) {
+        // Check if Enter key was pressed
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            performSearch();
+        }
     }
     
     // Edit modal functions - updated to use the new EditBoundary class
@@ -754,6 +865,9 @@
         
         // Initialize the view UI
         viewUI = new ViewUI();
+        
+        // Initialize the search UI
+        searchUI = new SearchUI();
     });
 </script>
 
