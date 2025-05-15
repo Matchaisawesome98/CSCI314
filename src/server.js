@@ -534,16 +534,6 @@ app.post('/api/update-suspension-status', async (req, res) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
 app.put('/update-user/:id', async (req, res) => {
     const userId = req.params.id;
     const userData = req.body;
