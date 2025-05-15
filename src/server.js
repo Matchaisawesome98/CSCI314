@@ -3,12 +3,16 @@ const cors = require('cors');
 const mysql = require('mysql2');
 const mysql2Promise = require('mysql2/promise');
 
+
 const app = express();
 const port = 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+
+
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -18,18 +22,23 @@ app.use((req, res, next) => {
 
 // Database configuration
 const dbConfig = {
-    host: '127.0.0.1',
+    host: 'localhost',
     port: 3306,
     user: 'root',
     password: 'Sandman@9139', //please change if needed
     database: 'users'
 };
 
+
+
 // MySQL connection pool for authentication
 const pool = mysql.createPool({
     connectionLimit: 10,
     ...dbConfig
 });
+
+
+const promisePool = pool.promise();
 
 // Authentication endpoint
 app.post('/api/authenticate', (req, res) => {
@@ -87,7 +96,7 @@ app.get('/get-homeowners', async (req, res) => {
 });
 
 
-// Add this code to your existing server.js file
+
 
 // Add new user endpoint
 app.post('/api/users', async (req, res) => {
@@ -414,243 +423,31 @@ app.delete('/api/listings/:id', async (req, res) => {
     }
 });
 
-// Make sure this endpoint is properly defined and not nested inside any conditional blocks
-// Place this with your other endpoint definitions
 
-// Update user account endpoint - keep the original URL without the /api/ prefix
-app.post('/update-user-account', async (req, res) => {
+
+
+
+
+// Update user suspension status endpoint
+app.post('/update-suspension-status', async (req, res) => {
     try {
-        console.log('Update user request received:', req.body);
-        const { user_id, email, first_name, last_name, roles } = req.body;
+        const { userId, isSuspended } = req.body;
         
         // Basic validation
-        if (!email || !first_name || !last_name || !user_id) {
-            return res.status(400).json({
-                success: false,
-                message: 'User ID, email, first name, and last name are required'
-            });
-        }
-        
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid email format'
-            });
-        }
-        
-        // Validate roles (must be either 'home_owner' or 'user_admin')
-        if (roles && !['home_owner', 'user_admin'].includes(roles)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Role must be either "home_owner" or "user_admin"'
-            });
-        }
-        
-        const connection = await mysql2Promise.createConnection(dbConfig);
-        
-        // Check if user exists
-        const [existingUser] = await connection.execute(
-            'SELECT * FROM user_accounts WHERE user_id = ?',
-            [user_id]
-        );
-        
-        if (existingUser.length === 0) {
-            await connection.end();
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-        
-        // Check if email is already in use by another user
-        const [emailCheck] = await connection.execute(
-            'SELECT * FROM user_accounts WHERE email = ? AND user_id != ?',
-            [email, user_id]
-        );
-        
-        if (emailCheck.length > 0) {
-            await connection.end();
-            return res.status(409).json({
-                success: false,
-                message: 'Email already in use by another user'
-            });
-        }
-        
-        // Check if first_name and last_name combination is already in use by another user
-        const [nameCheck] = await connection.execute(
-            'SELECT * FROM user_accounts WHERE first_name = ? AND last_name = ? AND user_id != ?',
-            [first_name, last_name, user_id]
-        );
-        
-        if (nameCheck.length > 0) {
-            await connection.end();
-            return res.status(409).json({
-                success: false,
-                message: 'First name and last name combination already in use by another user'
-            });
-        }
-        
-        // Update user
-        await connection.execute(
-            'UPDATE user_accounts SET email = ?, first_name = ?, last_name = ?, roles = ? WHERE user_id = ?',
-            [email, first_name, last_name, roles, user_id]
-        );
-        
-        await connection.end();
-        
-        console.log('User updated successfully:', user_id);
-        res.json({
-            success: true,
-            message: 'User updated successfully'
-        });
-    } catch (error) {
-        // Comprehensive error logging
-        console.error('Error in update-user-account endpoint:', error);
-        // Send proper JSON error response
-        res.status(500).json({
-            success: false,
-            message: 'Failed to update user: ' + error.message
-        });
-    }
-});
-
-// Also add a duplicate endpoint with the /api/ prefix for consistency
-app.post('/api/update-user-account', async (req, res) => {
-    // Simply call the same logic from the other route
-    try {
-        const { user_id, email, first_name, last_name, roles } = req.body;
-        
-        // Basic validation
-        if (!email || !first_name || !last_name || !user_id) {
-            return res.status(400).json({
-                success: false,
-                message: 'User ID, email, first name, and last name are required'
-            });
-        }
-        
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid email format'
-            });
-        }
-        
-        // Validate roles (must be either 'home_owner' or 'user_admin')
-        if (roles && !['home_owner', 'user_admin'].includes(roles)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Role must be either "home_owner" or "user_admin"'
-            });
-        }
-        
-        const connection = await mysql2Promise.createConnection(dbConfig);
-        
-        // Check if user exists
-        const [existingUser] = await connection.execute(
-            'SELECT * FROM user_accounts WHERE user_id = ?',
-            [user_id]
-        );
-        
-        if (existingUser.length === 0) {
-            await connection.end();
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-        
-        // Check if email is already in use by another user
-        const [emailCheck] = await connection.execute(
-            'SELECT * FROM user_accounts WHERE email = ? AND user_id != ?',
-            [email, user_id]
-        );
-        
-        if (emailCheck.length > 0) {
-            await connection.end();
-            return res.status(409).json({
-                success: false,
-                message: 'Email already in use by another user'
-            });
-        }
-        
-        // Check if first_name and last_name combination is already in use by another user
-        const [nameCheck] = await connection.execute(
-            'SELECT * FROM user_accounts WHERE first_name = ? AND last_name = ? AND user_id != ?',
-            [first_name, last_name, user_id]
-        );
-        
-        if (nameCheck.length > 0) {
-            await connection.end();
-            return res.status(409).json({
-                success: false,
-                message: 'First name and last name combination already in use by another user'
-            });
-        }
-        
-        // Update user
-        await connection.execute(
-            'UPDATE user_accounts SET email = ?, first_name = ?, last_name = ?, roles = ? WHERE user_id = ?',
-            [email, first_name, last_name, roles, user_id]
-        );
-        
-        await connection.end();
-        
-        console.log('User updated successfully:', user_id);
-        res.json({
-            success: true,
-            message: 'User updated successfully'
-        });
-    } catch (error) {
-        // Comprehensive error logging
-        console.error('Error in api/update-user-account endpoint:', error);
-        // Send proper JSON error response
-        res.status(500).json({
-            success: false,
-            message: 'Failed to update user: ' + error.message
-        });
-    }
-});
-
-
-// Add this to your server.js to test if the server is properly handling requests
-app.get('/test-endpoint', (req, res) => {
-    res.json({ success: true, message: 'Server is properly responding to requests' });
-});
-
-// Also add a POST version to test POST requests specifically
-app.post('/test-post', (req, res) => {
-    res.json({ 
-        success: true, 
-        message: 'POST request successful',
-        receivedData: req.body 
-    });
-});
-
-
-// Suspension Code
-// Toggle user suspension status endpoint
-app.post('/api/toggle-suspension', async (req, res) => {
-    try {
-        const { user_id, isSuspended } = req.body;
-        
-        // Basic validation
-        if (user_id === undefined || isSuspended === undefined) {
+        if (userId === undefined || isSuspended === undefined) {
             return res.status(400).json({
                 success: false,
                 message: 'User ID and suspension status are required'
             });
         }
         
+        // Connect to the database
         const connection = await mysql2Promise.createConnection(dbConfig);
         
         // Check if user exists
         const [existingUser] = await connection.execute(
             'SELECT * FROM user_accounts WHERE user_id = ?',
-            [user_id]
+            [userId]
         );
         
         if (existingUser.length === 0) {
@@ -661,29 +458,189 @@ app.post('/api/toggle-suspension', async (req, res) => {
             });
         }
         
-        // Update user suspension status
+        // Update the suspension status
         await connection.execute(
             'UPDATE user_accounts SET isSuspended = ? WHERE user_id = ?',
-            [isSuspended, user_id]
+            [isSuspended, userId]
         );
         
         await connection.end();
         
-        console.log(`User ${user_id} suspension status updated to: ${isSuspended}`);
+        console.log(`User ${userId} suspension status updated to: ${isSuspended}`);
         res.json({
             success: true,
-            message: `User ${isSuspended ? 'suspended' : 'unsuspended'} successfully`
+            message: `User has been ${isSuspended ? 'suspended' : 'unsuspended'} successfully`
         });
     } catch (error) {
-        console.error('Error in toggle-suspension endpoint:', error);
+        console.error('Error in update-suspension-status endpoint:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to update suspension status: ' + error.message
+            message: 'Failed to update user suspension status: ' + error.message
+        });
+    }
+});
+
+// Add a duplicate endpoint with the /api/ prefix for consistency
+app.post('/api/update-suspension-status', async (req, res) => {
+    try {
+        const { userId, isSuspended } = req.body;
+        
+        // Basic validation
+        if (userId === undefined || isSuspended === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID and suspension status are required'
+            });
+        }
+        
+        // Connect to the database
+        const connection = await mysql2Promise.createConnection(dbConfig);
+        
+        // Check if user exists
+        const [existingUser] = await connection.execute(
+            'SELECT * FROM user_accounts WHERE user_id = ?',
+            [userId]
+        );
+        
+        if (existingUser.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        
+        // Update the suspension status
+        await connection.execute(
+            'UPDATE user_accounts SET isSuspended = ? WHERE user_id = ?',
+            [isSuspended, userId]
+        );
+        
+        await connection.end();
+        
+        console.log(`User ${userId} suspension status updated to: ${isSuspended}`);
+        res.json({
+            success: true,
+            message: `User has been ${isSuspended ? 'suspended' : 'unsuspended'} successfully`
+        });
+    } catch (error) {
+        console.error('Error in api/update-suspension-status endpoint:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update user suspension status: ' + error.message
         });
     }
 });
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Update user endpoint
+app.put('/update-user/:id', async (req, res) => {
+    const userId = req.params.id;
+    const userData = req.body;
+    
+    try {
+        // Validate input
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+        
+        if (Object.keys(userData).length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No data provided for update'
+            });
+        }
+        
+        // Create connection
+        const connection = await mysql2Promise.createConnection(dbConfig);
+        
+        // Build update query dynamically
+        const fields = Object.keys(userData);
+        const values = Object.values(userData);
+        
+        // Construct SET clause
+        const setClause = fields.map(field => `${field} = ?`).join(', ');
+        
+        // Determine which column to use as primary key
+        // Try to use 'id' first, if not present, assume 'user_id'
+        const idField = await determineIdField(connection);
+        
+        // Construct and execute the query
+        const query = `UPDATE user_accounts SET ${setClause} WHERE ${idField} = ?`;
+        const [result] = await connection.execute(query, [...values, userId]);
+        
+        await connection.end();
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found or no changes made'
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: 'User updated successfully',
+            affectedRows: result.affectedRows
+        });
+        
+    } catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update user',
+            error: error.message
+        });
+    }
+});
+
+// Helper function to determine which ID field is present in the table
+async function determineIdField(connection) {
+    try {
+        // Get table structure
+        const [columns] = await connection.execute(`
+            SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'user_accounts'
+        `, [dbConfig.database]);
+        
+        const columnNames = columns.map(col => col.COLUMN_NAME);
+        
+        // Check if 'id' exists
+        if (columnNames.includes('id')) {
+            return 'id';
+        } 
+        // Otherwise use 'user_id'
+        else if (columnNames.includes('user_id')) {
+            return 'user_id';
+        }
+        // Default to 'id' if neither is found
+        else {
+            return 'id';
+        }
+    } catch (error) {
+        console.error('Error determining ID field:', error);
+        return 'id'; // Default to 'id'
+    }
+}
 
 
 
@@ -706,3 +663,38 @@ app.get('/test', (req, res) => {
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
+
+
+
+
+
+
+// Add this to your server.js to test if the server is properly handling requests
+app.get('/test-endpoint', (req, res) => {
+    res.json({ success: true, message: 'Server is properly responding to requests' });
+});
+
+// Also add a POST version to test POST requests specifically
+app.post('/test-post', (req, res) => {
+    res.json({ 
+        success: true, 
+        message: 'POST request successful',
+        receivedData: req.body 
+    });
+});
+
+
+
+
+
+// Add a static file server for the HTML page
+app.use(express.static('public'));
+
+// Make sure to handle any route pointing to the user management interface
+app.get('/user-management', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'user-management.html'));
+});
+
+
+
+

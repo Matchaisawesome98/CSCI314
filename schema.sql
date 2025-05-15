@@ -1,8 +1,12 @@
+
+
+
 -- Create the database for all user info
 CREATE DATABASE IF NOT EXISTS users;
 
 -- Use this database
 USE users;
+
 
 -- Create the user_accounts table (previously called home_owner)
 CREATE TABLE IF NOT EXISTS user_accounts (
@@ -11,20 +15,21 @@ CREATE TABLE IF NOT EXISTS user_accounts (
     password VARCHAR(50) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    roles VARCHAR(20) DEFAULT 'home_owner'
+    roles VARCHAR(20) DEFAULT 'home_owner',
+    isSuspended BOOLEAN DEFAULT FALSE
     );
 
--- create the table of listings
-CREATE TABLE IF NOT EXISTS listings (
-    listing_id VARCHAR(20) PRIMARY KEY,
-    title VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT,
-    price DECIMAL(10, 2),
-    image_path VARCHAR(255),
-    user_id VARCHAR(20) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    FOREIGN KEY (user_id) REFERENCES user_accounts(user_id)
-    );
+-- -- create the table of listings
+-- CREATE TABLE IF NOT EXISTS listings (
+--     listing_id VARCHAR(20) PRIMARY KEY,
+--     title VARCHAR(50) NOT NULL UNIQUE,
+--     description TEXT,
+--     price DECIMAL(10, 2),
+--     image_path VARCHAR(255),
+--     user_id VARCHAR(20) NOT NULL,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+--     FOREIGN KEY (user_id) REFERENCES user_accounts(user_id)
+--     );
 
 
 
@@ -103,5 +108,8 @@ DELIMITER ;
 -- Run the procedure to populate the table
 CALL populate_user_accounts();
 
+Delete from user_accounts;
+
 -- See the results
 SELECT * FROM user_accounts;
+

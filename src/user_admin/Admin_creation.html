@@ -199,135 +199,276 @@
         // Base URL for API calls
         const API_BASE_URL = 'http://localhost:3000';
         
-        // DOM Elements
-        const addUserForm = document.getElementById('addUserForm');
-        const messageDiv = document.getElementById('message');
-        const refreshButton = document.getElementById('refreshUsers');
-        const usersTableBody = document.getElementById('usersTableBody');
-        const serverStatusSpan = document.getElementById('serverStatus');
-        
-        // Add event listeners
-        addUserForm.addEventListener('submit', handleAddUser);
-        refreshButton.addEventListener('click', fetchUsers);
-        
-        // Check server status and fetch users when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            checkServerStatus();
-            fetchUsers();
-        });
-        
-        // Check if server is running
-        async function checkServerStatus() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/test`);
-                if (response.ok) {
-                    serverStatusSpan.innerHTML = '<span class="status-indicator status-online"></span>Online';
-                } else {
-                    serverStatusSpan.innerHTML = '<span class="status-indicator status-offline"></span>Error';
+        // Entity Class - Handles data models and API interactions
+        class Creation_Entity {
+            constructor() {
+                // Default structure for User entity
+                this.userTemplate = {
+                    user_id: null,
+                    email: '',
+                    first_name: '',
+                    last_name: '',
+                    roles: 'user_admin',
+                    password: '',
+                    isSuspended: false
+                };
+                this.API_BASE_URL = API_BASE_URL;
+            }
+            
+            // Create a new user object
+            createUser(userData) {
+                return {
+                    ...this.userTemplate,
+                    email: userData.email || '',
+                    first_name: userData.first_name || '',
+                    last_name: userData.last_name || '',
+                    roles: userData.roles || 'user_admin',
+                    password: userData.password || ''
+                };
+            }
+            
+            // API call to check server status
+            async checkServerStatus() {
+                try {
+                    const response = await fetch(`${this.API_BASE_URL}/test`);
+                    if (response.ok) {
+                        return { isOnline: true };
+                    } else {
+                        return { isOnline: false, message: 'Server error' };
+                    }
+                } catch (error) {
+                    console.error('Server connection error:', error);
+                    return { isOnline: false, message: 'Server offline' };
                 }
-            } catch (error) {
-                serverStatusSpan.innerHTML = '<span class="status-indicator status-offline"></span>Offline';
-                console.error('Server connection error:', error);
+            }
+            
+            // API call to add new user
+            async addUser(user) {
+                try {
+                    const response = await fetch(`${this.API_BASE_URL}/api/users`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(user)
+                    });
+                    
+                    return await response.json();
+                } catch (error) {
+                    
+                    return { success: false, message: error.message };
+                }
+            }
+            
+            // API call to fetch all users
+            async fetchUsers() {
+                try {
+                    const response = await fetch(`${this.API_BASE_URL}/get-homeowners`);
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error fetching users:', error);
+                    return { success: false, message: 'Error fetching users: Server may be offline' };
+                }
             }
         }
         
-        // Handle adding a new user admin
-        async function handleAddUser(event) {
-            event.preventDefault();
-            const result = confirm("Create a new admin user?");
-            if (result === false) {
-                return;
+        // Controller Class - Handles business logic and validation
+        class Creation_Controller {
+            constructor(entity) {
+                this.entity = entity;
             }
             
-            const formData = {
-                email: document.getElementById('email').value,
-                first_name: document.getElementById('firstName').value,
-                last_name: document.getElementById('lastName').value,
-                roles: document.getElementById('roles').value,
-                // Include password in the request
-                password: document.getElementById('password').value
-            };
+            // Validate user data
+            validateUser(userData) {
+                if (!userData.email || !userData.email.includes('@')) {
+                    return { isValid: false, message: 'Valid email is required' };
+                }
+                
+                if (!userData.first_name) {
+                    return { isValid: false, message: 'First name is required' };
+                }
+                
+                if (!userData.last_name) {
+                    return { isValid: false, message: 'Last name is required' };
+                }
+                
+                if (!userData.password) {
+                    return { isValid: false, message: 'Password is required' };
+                }
+                
+                if (userData.password.length < 6) {
+                    return { isValid: false, message: 'Password must be at least 6 characters' };
+                }
+                
+                return { isValid: true };
+            }
             
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/users`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formData)
+            // Process adding a new user
+            async processAddUser(userData) {
+                // First validate the data
+                const validation = this.validateUser(userData);
+                if (!validation.isValid) {
+                    return { success: false, message: validation.message };
+                }
+                
+                // Create user object with entity
+                const user = this.entity.createUser(userData);
+                
+                // Send to API via entity
+                return await this.entity.addUser(user);
+            }
+            
+            // Get server status via entity
+            async getServerStatus() {
+                return await this.entity.checkServerStatus();
+            }
+            
+            // Get users via entity
+            async getUsers() {
+                return await this.entity.fetchUsers();
+            }
+        }
+        
+        // Boundary Class - Handles UI interaction only
+        class Creation_Boundary {
+            constructor(controller) {
+                this.controller = controller;
+                
+                // DOM Elements
+                this.addUserForm = document.getElementById('addUserForm');
+                this.messageDiv = document.getElementById('message');
+                this.refreshButton = document.getElementById('refreshUsers');
+                this.usersTableBody = document.getElementById('usersTableBody');
+                this.serverStatusSpan = document.getElementById('serverStatus');
+                
+                // Bind methods to this instance
+                this.handleAddUser = this.handleAddUser.bind(this);
+                this.refreshUsers = this.refreshUsers.bind(this);
+                this.updateServerStatus = this.updateServerStatus.bind(this);
+                
+                // Add event listeners
+                this.addUserForm.addEventListener('submit', this.handleAddUser);
+                this.refreshButton.addEventListener('click', this.refreshUsers);
+                
+                // Initialize UI
+                this.initializeUI();
+            }
+            
+            // Initialize UI components
+            initializeUI() {
+                this.updateServerStatus();
+                this.refreshUsers();
+                
+                // Set up periodic status checks
+                setInterval(this.updateServerStatus, 60000); // Check server status every minute
+            }
+            
+            // Update server status in UI
+            async updateServerStatus() {
+                const status = await this.controller.getServerStatus();
+                
+                if (status.isOnline) {
+                    this.serverStatusSpan.innerHTML = '<span class="status-indicator status-online"></span>Online';
+                } else {
+                    this.serverStatusSpan.innerHTML = `<span class="status-indicator status-offline"></span>${status.message || 'Offline'}`;
+                }
+            }
+            
+            // Handle form submission for adding users (UI event)
+            async handleAddUser(event) {
+                event.preventDefault();
+                
+                const result = confirm("Create a new admin user?");
+                if (result === false) {
+                    return;
+                }
+                
+                // Collect form data
+                const formData = {
+                    email: document.getElementById('email').value,
+                    first_name: document.getElementById('firstName').value,
+                    last_name: document.getElementById('lastName').value,
+                    roles: document.getElementById('roles').value,
+                    password: document.getElementById('password').value
+                };
+                
+                // Send to controller for processing
+                const response = await this.controller.processAddUser(formData);
+                
+                // Handle UI updates based on response
+                if (response.success) {
+                    this.showMessage(`Admin user added successfully with ID: ${response.user_id}`, 'success');
+                    this.addUserForm.reset();
+                    this.refreshUsers(); // Refresh user list
+                } else {
+                    this.showMessage(`Error: ${response.message}`, 'error');
+                }
+            }
+            
+            // Refresh users list in UI
+            async refreshUsers() {
+                // Show loading state
+                this.usersTableBody.innerHTML = '<tr><td colspan="6">Loading users...</td></tr>';
+                
+                // Get users from controller
+                const result = await this.controller.getUsers();
+                
+                // Update UI based on result
+                if (result.success) {
+                    this.renderUserTable(result.data);
+                } else {
+                    this.showMessage(`Error: ${result.message}`, 'error');
+                    this.usersTableBody.innerHTML = '<tr><td colspan="6">Failed to load users</td></tr>';
+                }
+            }
+            
+            // Render users table (UI only)
+            renderUserTable(users) {
+                this.usersTableBody.innerHTML = '';
+                
+                if (!users || users.length === 0) {
+                    this.usersTableBody.innerHTML = '<tr><td colspan="6">No users found</td></tr>';
+                    return;
+                }
+                
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    const isSuspended = user.isSuspended || false;
+                    const statusClass = isSuspended ? 'suspended' : 'active';
+                    const statusText = isSuspended ? 'Suspended' : 'Active';
+                    
+                    row.innerHTML = `
+                        <td>${user.user_id}</td>
+                        <td>${user.email}</td>
+                        <td>${user.first_name}</td>
+                        <td>${user.last_name}</td>
+                        <td>${user.roles || 'home_owner'}</td>
+                        <td><span class="suspension-status ${statusClass}">${statusText}</span></td>
+                    `;
+                    
+                    this.usersTableBody.appendChild(row);
                 });
+            }
+            
+            // Show message in UI
+            showMessage(message, type) {
+                this.messageDiv.textContent = message;
+                this.messageDiv.className = `message ${type}`;
                 
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage(`Admin user added successfully with ID: ${result.user_id}`, 'success');
-                    addUserForm.reset();
-                    fetchUsers(); // Refresh user list
-                } else {
-                    showMessage(`Error: ${result.message}`, 'error');
-                }
-            } catch (error) {
-                showMessage(`Error: ${error.message}`, 'error');
-                console.error('Error adding user:', error);
+                // Clear message after 5 seconds
+                setTimeout(() => {
+                    this.messageDiv.textContent = '';
+                    this.messageDiv.className = 'message';
+                }, 5000);
             }
         }
         
-        // Fetch all users
-        async function fetchUsers() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/get-homeowners`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    displayUsers(result.data);
-                } else {
-                    showMessage(`Error: ${result.message}`, 'error');
-                }
-            } catch (error) {
-                showMessage(`Error fetching users: Server may be offline`, 'error');
-                console.error('Error fetching users:', error);
-            }
-        }
-        
-        // Display users in the table
-        function displayUsers(users) {
-            usersTableBody.innerHTML = '';
-            
-            if (users.length === 0) {
-                usersTableBody.innerHTML = '<tr><td colspan="6">No users found</td></tr>';
-                return;
-            }
-            
-            users.forEach(user => {
-                const row = document.createElement('tr');
-                const isSuspended = user.isSuspended || false;
-                const statusClass = isSuspended ? 'suspended' : 'active';
-                const statusText = isSuspended ? 'Suspended' : 'Active';
-                
-                row.innerHTML = `
-                    <td>${user.user_id}</td>
-                    <td>${user.email}</td>
-                    <td>${user.first_name}</td>
-                    <td>${user.last_name}</td>
-                    <td>${user.roles || 'home_owner'}</td>
-                    <td><span class="suspension-status ${statusClass}">${statusText}</span></td>
-                `;
-                
-                usersTableBody.appendChild(row);
-            });
-        }
-        
-        // Show message to user
-        function showMessage(message, type) {
-            messageDiv.textContent = message;
-            messageDiv.className = `message ${type}`;
-            
-            // Clear message after 5 seconds
-            setTimeout(() => {
-                messageDiv.textContent = '';
-                messageDiv.className = 'message';
-            }, 5000);
-        }
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', () => {
+            const entity = new Creation_Entity();
+            const controller = new Creation_Controller(entity);
+            const boundary = new Creation_Boundary(controller);
+        });
     </script>
 </body>
 </html>
