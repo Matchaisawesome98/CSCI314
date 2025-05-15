@@ -544,11 +544,6 @@ app.post('/api/update-suspension-status', async (req, res) => {
 
 
 
-
-
-
-
-// Update user endpoint
 app.put('/update-user/:id', async (req, res) => {
     const userId = req.params.id;
     const userData = req.body;
@@ -572,9 +567,24 @@ app.put('/update-user/:id', async (req, res) => {
         // Create connection
         const connection = await mysql2Promise.createConnection(dbConfig);
         
+        // Handle field name mapping
+        const fieldMap = {
+            // Map frontend field names to database field names if needed
+            firstName: 'first_name',
+            lastName: 'last_name'
+        };
+        
+        // Build update query with mapped fields
+        const mappedUserData = {};
+        for (const [key, value] of Object.entries(userData)) {
+            // Use the mapped field name if available, otherwise use the original key
+            const fieldName = fieldMap[key] || key;
+            mappedUserData[fieldName] = value;
+        }
+        
         // Build update query dynamically
-        const fields = Object.keys(userData);
-        const values = Object.values(userData);
+        const fields = Object.keys(mappedUserData);
+        const values = Object.values(mappedUserData);
         
         // Construct SET clause
         const setClause = fields.map(field => `${field} = ?`).join(', ');
@@ -611,6 +621,92 @@ app.put('/update-user/:id', async (req, res) => {
         });
     }
 });
+
+// New endpoint for user creation
+app.post('/api/users', async (req, res) => {
+    const userData = req.body;
+    
+    try {
+        // Validate input
+        if (!userData.email || !userData.password || !userData.first_name || !userData.last_name) {
+            return res.status(400).json({
+                success: false,
+                message: 'Required fields missing: email, password, first_name, last_name'
+            });
+        }
+        
+        // Create connection
+        const connection = await mysql2Promise.createConnection(dbConfig);
+        
+        // Generate a user_id if not provided
+        const userId = userData.user_id || `user${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`;
+        
+        // Insert the new user
+        const query = `
+            INSERT INTO user_accounts 
+            (user_id, email, password, first_name, last_name, roles, isSuspended) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `;
+        
+        const [result] = await connection.execute(query, [
+            userId,
+            userData.email,
+            userData.password,
+            userData.first_name,
+            userData.last_name,
+            userData.roles || 'home_owner',
+            userData.isSuspended || false
+        ]);
+        
+        await connection.end();
+        
+        res.status(201).json({
+            success: true,
+            message: 'User created successfully',
+            user_id: userId
+        });
+        
+    } catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create user',
+            error: error.message
+        });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Helper function to determine which ID field is present in the table
 async function determineIdField(connection) {

@@ -39,67 +39,123 @@
 <div id="tableContainer"></div>
 
 <script>
-    // --- VIEW USERS FEATURE ---
-    
-    // Entity class - Handles data operations
-    class ViewEntity {
-        async fetchAllUsers() {
+
+
+
+class User_Admin_Entity {
+    async fetchAllUsers() {
+        try {
             const response = await fetch('http://localhost:3000/get-homeowners');
-            const data = await response.json();
-            return data;
-        }
-    }
-    
-    // Controller class - Handles business logic
-    class ViewController {
-        constructor() {
-            this.viewEntity = new ViewEntity();
-        }
-        
-        async getAllUsers() {
-            try {
-                const result = await this.viewEntity.fetchAllUsers();
-                return result;
-            } catch (error) {
-                return { 
-                    success: false, 
-                    message: `Error fetching users: ${error.message}` 
+            
+            // Check if the response is OK
+            if (!response.ok) {
+                // Handle HTTP error responses (4xx, 5xx)
+                const errorData = await response.json().catch(() => ({}));
+                return {
+                    success: false,
+                    message: errorData.message || `Server error: ${response.status} ${response.statusText}`
                 };
             }
+            
+            const data = await response.json();
+            // If data is not an array, wrap it in an array to maintain consistency
+            const normalizedData = Array.isArray(data) ? data : (data.data ? data.data : []);
+            
+            return {
+                success: true,
+                data: normalizedData
+            };
+        } catch (error) {
+            // Handle network errors, CORS issues, or other connection problems
+            return {
+                success: false,
+                message: `Server connection error: ${error.message}`
+            };
         }
-        
-        // processUserData(userData) {
-        //     return userData;
-        // }
+    }
+}
+
+
+
+
+
+
+
+
+// Controller class - Handles business logic and passes data between entity and UI
+class ViewController {
+    constructor() {
+        this.viewEntity = new User_Admin_Entity();
     }
     
-    // UI class - Handles presentation
-    class ViewUI {
-        constructor() {
-            this.controller = new ViewController();
-            this.statusDiv = document.getElementById('status');
-            this.tableContainer = document.getElementById('tableContainer');
-        }
-        
-        showLoading() {
+    async getAllUsers() {
+        // Simply pass through to the entity
+        return await this.viewEntity.fetchAllUsers();
+    }
+}
+
+// UI class - Handles presentation and UI-related exception handling
+class ViewUI {
+    constructor() {
+        this.controller = new ViewController();
+        this.statusDiv = document.getElementById('status');
+        this.tableContainer = document.getElementById('tableContainer');
+    }
+    
+    showLoading() {
+        try {
             this.statusDiv.style.display = 'block';
             this.statusDiv.innerHTML = 'Fetching data...';
             this.statusDiv.className = 'status';
             this.tableContainer.innerHTML = '';
+        } catch (error) {
+            console.error('UI Error in showLoading:', error);
+            // Handle UI-specific errors
+            this.handleUIError(error);
         }
-        
-        showError(message) {
+    }
+    
+    showError(message) {
+        try {
             this.statusDiv.className = 'status error';
             this.statusDiv.innerHTML = `Error: ${message}`;
+        } catch (error) {
+            console.error('UI Error in showError:', error);
+            // Handle UI-specific errors
+            this.handleUIError(error);
         }
-        
-        showSuccess(count) {
+    }
+    
+    showSuccess(count) {
+        try {
             this.statusDiv.className = 'status success';
             this.statusDiv.innerHTML = `Found ${count} records`;
+        } catch (error) {
+            console.error('UI Error in showSuccess:', error);
+            // Handle UI-specific errors
+            this.handleUIError(error);
         }
-        
-        renderTable(data) {
-            if (data.length === 0) {
+    }
+    
+    handleUIError(error) {
+        // Method to handle UI-specific errors (syntax errors, DOM manipulation errors)
+        try {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'ui-error';
+            errorDiv.innerHTML = `UI Error: ${error.message}`;
+            document.body.appendChild(errorDiv);
+        } catch (e) {
+            // Last resort error handling
+            alert(`Critical UI error: ${error.message}`);
+        }
+    }
+    
+    renderTable(data) {
+        try {
+            // Ensure data is an array to prevent undefined errors
+            const safeData = Array.isArray(data) ? data : [];
+            
+            if (safeData.length === 0) {
                 this.tableContainer.innerHTML = '<p>No records found in the table.</p>';
                 return;
             }
@@ -108,7 +164,7 @@
             let tableHTML = '<table><thead><tr>';
             
             // Get column names from the first record
-            const columns = Object.keys(data[0]);
+            const columns = Object.keys(safeData[0]);
             
             // Add table headers
             columns.forEach(column => {
@@ -117,7 +173,7 @@
             tableHTML += '</tr></thead><tbody>';
             
             // Add table rows
-            data.forEach(row => {
+            safeData.forEach(row => {
                 tableHTML += '<tr>';
                 columns.forEach(column => {
                     // Special handling for password column - blur it
@@ -137,118 +193,151 @@
             
             tableHTML += '</tbody></table>';
             this.tableContainer.innerHTML = tableHTML;
+        } catch (error) {
+            console.error('UI Error in renderTable:', error);
+            // Handle UI-specific errors
+            this.handleUIError(error);
         }
+    }
+    
+    async displayAllUsers() {
+        this.showLoading();
         
-        async displayAllUsers() {
-            this.showLoading();
+        try {
+            const result = await this.controller.getAllUsers();
             
-            try {
-                const result = await this.controller.getAllUsers();
-                
-                if (result.success) {
-                    this.showSuccess(result.data.length);
-                    // const processedData = this.controller.processUserData(result.data);
-                    this.renderTable(result.data);
-                } else {
-                    this.showError(result.message);
-                }
-            } catch (error) {
-                this.showError(`Failed to connect to server: ${error.message}`);
-            }
-        }
-    }
-    
-    // --- SEARCH FEATURE ---
-    
-    // Entity class - Handles data operations
-    class SearchEntity {
-        async fetchUsers() {
-            const response = await fetch('http://localhost:3000/get-homeowners');
-            const data = await response.json();
-            return data;
-        }
-    }
-    
-    // Controller class - Handles business logic
-    class SearchController {
-        constructor() {
-            this.searchEntity = new SearchEntity();
-        }
-        
-        async getAllUsers() {
-            try {
-                const result = await this.searchEntity.fetchUsers();
-                return result;
-            } catch (error) {
-                return { 
-                    success: false, 
-                    message: `Error fetching users: ${error.message}` 
-                };
-            }
-        }
-        
-        async searchUsers(searchTerm) {
-            // If search term is empty, return all users instead of an error
-            if (!searchTerm || searchTerm.trim() === '') {
-                return this.getAllUsers();
+            if (!result.success) {
+                // Handle API error response from entity
+                this.showError(result.message || 'Unknown error occurred');
+                return;
             }
             
-            try {
-                const result = await this.searchEntity.fetchUsers();
-                
-                if (result.success) {
-                    // Filter users based on search term
-                    const filteredData = result.data.filter(user => {
-                        return Object.values(user).some(value => 
-                            typeof value === 'string' && 
-                            value.toLowerCase().includes(searchTerm.toLowerCase())
-                        );
-                    });
-                    
-                    return {
-                        success: true,
-                        data: filteredData
-                    };
-                } else {
-                    return result; // Pass along the error
-                }
-            } catch (error) {
-                return { 
-                    success: false, 
-                    message: `Error searching users: ${error.message}` 
-                };
-            }
+            // Make sure data is defined before accessing its length
+            const userData = result.data || [];
+            this.showSuccess(userData.length);
+            this.renderTable(userData);
+        } catch (error) {
+            // Handle unexpected UI errors
+            console.error('Unexpected UI Error:', error);
+            this.showError(`UI error: ${error.message}`);
         }
     }
+}
+
+// --- SEARCH FEATURE ---
+// Search Controller class
+class SearchController {
+    constructor() {
+        this.searchEntity = new User_Admin_Entity();
+    }
     
-    // UI class - Handles presentation
-    class SearchUI {
-        constructor() {
-            this.controller = new SearchController();
-            this.statusDiv = document.getElementById('status');
-            this.tableContainer = document.getElementById('tableContainer');
-            this.searchInput = document.getElementById('searchInput');
+    async getAllUsers() {
+        // Pass through to entity
+        return await this.searchEntity.fetchAllUsers();
+    }
+    
+    async searchUsers(searchTerm) {
+        // If search term is empty, return all users
+        if (!searchTerm || searchTerm.trim() === '') {
+            return await this.getAllUsers();
         }
         
-        showLoading() {
+        // Get all users first
+        const result = await this.searchEntity.fetchAllUsers();
+        
+        // If there was an error, just pass it through
+        if (!result.success) {
+            return result;
+        }
+        
+        // Filter users based on search term - business logic in controller
+        try {
+            // Ensure data is an array to prevent undefined errors
+            const safeData = Array.isArray(result.data) ? result.data : [];
+            
+            const filteredData = safeData.filter(user => {
+                return Object.values(user).some(value => 
+                    value !== null && 
+                    value !== undefined && 
+                    String(value).toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            });
+            
+            // Return the filtered data
+            return {
+                success: true,
+                data: filteredData
+            };
+        } catch (error) {
+            // Handle any errors during filtering (not server errors)
+            return {
+                success: false,
+                message: `Error processing search: ${error.message}`
+            };
+        }
+    }
+}
+
+// Search UI class
+class SearchUI {
+    constructor() {
+        this.controller = new SearchController();
+        this.statusDiv = document.getElementById('status');
+        this.tableContainer = document.getElementById('tableContainer');
+        this.searchInput = document.getElementById('searchInput');
+    }
+    
+    showLoading() {
+        try {
             this.statusDiv.style.display = 'block';
             this.statusDiv.innerHTML = 'Searching...';
             this.statusDiv.className = 'status';
             this.tableContainer.innerHTML = '';
+        } catch (error) {
+            console.error('UI Error in showLoading:', error);
+            this.handleUIError(error);
         }
-        
-        showError(message) {
+    }
+    
+    showError(message) {
+        try {
             this.statusDiv.className = 'status error';
             this.statusDiv.innerHTML = `Error: ${message}`;
+        } catch (error) {
+            console.error('UI Error in showError:', error);
+            this.handleUIError(error);
         }
-        
-        showSuccess(count) {
+    }
+    
+    showSuccess(count) {
+        try {
             this.statusDiv.className = 'status success';
             this.statusDiv.innerHTML = `Found ${count} matching users`;
+        } catch (error) {
+            console.error('UI Error in showSuccess:', error);
+            this.handleUIError(error);
         }
-        
-        renderSearchResults(data) {
-            if (data.length === 0) {
+    }
+    
+    handleUIError(error) {
+        // Method to handle UI-specific errors
+        try {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'ui-error';
+            errorDiv.innerHTML = `UI Error: ${error.message}`;
+            document.body.appendChild(errorDiv);
+        } catch (e) {
+            // Last resort error handling
+            alert(`Critical UI error: ${error.message}`);
+        }
+    }
+    
+    renderSearchResults(data) {
+        try {
+            // Ensure data is an array to prevent undefined errors
+            const safeData = Array.isArray(data) ? data : [];
+            
+            if (safeData.length === 0) {
                 this.tableContainer.innerHTML = '<p>No users found matching your search.</p>';
                 return;
             }
@@ -257,7 +346,7 @@
             let tableHTML = '<table><thead><tr>';
             
             // Get column names from the first record
-            const columns = Object.keys(data[0]);
+            const columns = Object.keys(safeData[0]);
             
             // Add table headers
             columns.forEach(column => {
@@ -266,7 +355,7 @@
             tableHTML += '</tr></thead><tbody>';
             
             // Add table rows
-            data.forEach(row => {
+            safeData.forEach(row => {
                 tableHTML += '<tr>';
                 columns.forEach(column => {
                     // Special handling for password column - blur it
@@ -286,34 +375,44 @@
             
             tableHTML += '</tbody></table>';
             this.tableContainer.innerHTML = tableHTML;
-        }
-        
-        async performSearch() {
-            const searchTerm = this.searchInput.value.trim();
-            
-            this.showLoading();
-            
-            try {
-                const result = await this.controller.searchUsers(searchTerm);
-                
-                if (result.success) {
-                    this.showSuccess(result.data.length);
-                    this.renderSearchResults(result.data);
-                } else {
-                    this.showError(result.message);
-                }
-            } catch (error) {
-                this.showError(`Failed to connect to server: ${error.message}`);
-            }
+        } catch (error) {
+            console.error('UI Error in renderSearchResults:', error);
+            this.handleUIError(error);
         }
     }
     
-    // Initialize the UI instances
-    let viewUI;
-    let searchUI;
-    
-    // View users initialization function
-    function initViewUsers() {
+    async performSearch() {
+        try {
+            const searchTerm = this.searchInput.value.trim();
+            this.showLoading();
+            
+            const result = await this.controller.searchUsers(searchTerm);
+            
+            if (!result.success) {
+                // Handle API error response
+                this.showError(result.message || 'Unknown error occurred');
+                return;
+            }
+            
+            // Make sure data is defined before accessing its length
+            const userData = result.data || [];
+            this.showSuccess(userData.length);
+            this.renderSearchResults(userData);
+        } catch (error) {
+            // Handle UI-specific errors
+            console.error('UI Error in performSearch:', error);
+            this.showError(`UI error: ${error.message}`);
+        }
+    }
+}
+
+// Initialize the UI instances
+let viewUI;
+let searchUI;
+
+// View users initialization function
+function initViewUsers() {
+    try {
         // Hide the View All button
         document.getElementById('viewAllButton').style.display = 'none';
         // Show the search container
@@ -326,10 +425,15 @@
         
         // Display all users
         viewUI.displayAllUsers();
+    } catch (error) {
+        console.error('Error initializing view:', error);
+        alert(`Failed to initialize view: ${error.message}`);
     }
-    
-    // Search function
-    function performSearch() {
+}
+
+// Search function
+function performSearch() {
+    try {
         // Initialize the search UI if not already done
         if (!searchUI) {
             searchUI = new SearchUI();
@@ -337,16 +441,46 @@
         
         // Perform search
         searchUI.performSearch();
+    } catch (error) {
+        console.error('Error performing search:', error);
+        alert(`Failed to perform search: ${error.message}`);
     }
-    
-    // Handle keyboard events for search input
-    function handleSearchKeyPress(event) {
+}
+
+// Handle keyboard events for search input
+function handleSearchKeyPress(event) {
+    try {
         // Check if Enter key was pressed
         if (event.key === 'Enter') {
             event.preventDefault();
             performSearch();
         }
+    } catch (error) {
+        console.error('Error handling key press:', error);
+        alert(`Error in search key handling: ${error.message}`);
     }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
 </script>
 
 </body>
