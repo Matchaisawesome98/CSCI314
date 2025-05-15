@@ -225,6 +225,8 @@ class readServicePage{
             card.querySelector('.service-description').textContent = processedService.description;
             card.querySelector('.tag').textContent = processedService.category;
 
+
+
             // Handle card buttons based on what page we're on
             const cardButtons = card.querySelector('.card-buttons');
             if (showManagementControls) {

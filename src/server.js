@@ -1346,6 +1346,414 @@ app.get('/api/listings/:id', async (req, res) => {
     }
 });
 
+// Add these booking endpoints to your server.js file
+
+// Get availability for a provider (checks existing bookings)
+app.get('/api/bookings/availability', async (req, res) => {
+    try {
+        const { provider_id, date } = req.query;
+
+        // Basic validation
+        if (!provider_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Provider ID is required'
+            });
+        }
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Build query based on whether a specific date was provided
+        let query = `
+            SELECT scheduled_date, scheduled_time 
+            FROM service_bookings 
+            WHERE provider_id = ? 
+            AND status != 'cancelled'
+        `;
+
+        let params = [provider_id];
+
+        // Filter by date if provided
+        if (date) {
+            query += ' AND scheduled_date = ?';
+            params.push(date);
+        } else {
+            // Otherwise get bookings from today onwards
+            query += ' AND scheduled_date >= CURDATE()';
+        }
+
+        // Execute the query
+        const [rows] = await connection.execute(query, params);
+        await connection.end();
+
+        // Return the booked slots
+        res.json({
+            success: true,
+            data: {
+                provider_id,
+                date: date || 'all',
+                bookings: rows
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching availability:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch availability',
+            error: error.message
+        });
+    }
+});
+
+// Create a new booking
+app.post('/api/bookings', async (req, res) => {
+    try {
+        const { user_id, listing_id, provider_id, scheduled_date, scheduled_time, status } = req.body;
+
+        // Basic validation
+        if (!user_id || !listing_id || !provider_id || !scheduled_date || !scheduled_time) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields for booking'
+            });
+        }
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Validate the user exists
+        const [userCheck] = await connection.execute(
+            'SELECT * FROM user_accounts WHERE user_id = ?',
+            [user_id]
+        );
+
+        if (userCheck.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Validate the provider exists
+        const [providerCheck] = await connection.execute(
+            'SELECT * FROM user_accounts WHERE user_id = ?',
+            [provider_id]
+        );
+
+        if (providerCheck.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'Provider not found'
+            });
+        }
+
+        // Validate the listing exists
+        const [listingCheck] = await connection.execute(
+            'SELECT * FROM listings WHERE listing_id = ?',
+            [listing_id]
+        );
+
+        if (listingCheck.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'Listing not found'
+            });
+        }
+
+        // Check if the timeslot is already booked
+        const [bookingCheck] = await connection.execute(
+            'SELECT * FROM service_bookings WHERE provider_id = ? AND scheduled_date = ? AND scheduled_time = ? AND status != "cancelled"',
+            [provider_id, scheduled_date, scheduled_time]
+        );
+
+        if (bookingCheck.length > 0) {
+            await connection.end();
+            return res.status(409).json({
+                success: false,
+                message: 'This time slot is already booked'
+            });
+        }
+
+        // Insert the new booking
+        const [result] = await connection.execute(
+            'INSERT INTO service_bookings (user_id, listing_id, provider_id, scheduled_date, scheduled_time, status) VALUES (?, ?, ?, ?, ?, ?)',
+            [user_id, listing_id, provider_id, scheduled_date, scheduled_time, status || 'pending_approval']
+        );
+
+        await connection.end();
+
+        res.status(201).json({
+            success: true,
+            message: 'Booking created successfully',
+            data: {
+                booking_id: result.insertId,
+                user_id,
+                listing_id,
+                provider_id,
+                scheduled_date,
+                scheduled_time,
+                status: status || 'pending_approval'
+            }
+        });
+    } catch (error) {
+        console.error('Error creating booking:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create booking',
+            error: error.message
+        });
+    }
+});
+
+// Get bookings for a user
+app.get('/api/bookings/user/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { status } = req.query;
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Build the query
+        let query = `
+            SELECT 
+                b.booking_id, 
+                b.scheduled_date, 
+                b.scheduled_time, 
+                b.status,
+                l.listing_id,
+                l.title AS service_title,
+                l.price AS service_price, 
+                l.image_path AS service_image,
+                CONCAT(p.first_name, ' ', p.last_name) AS provider_name
+            FROM 
+                service_bookings b
+            JOIN 
+                listings l ON b.listing_id = l.listing_id
+            JOIN 
+                user_accounts p ON b.provider_id = p.user_id
+            WHERE 
+                b.user_id = ?
+        `;
+
+        const queryParams = [userId];
+
+        // Add status filter if provided
+        if (status) {
+            query += ' AND b.status = ?';
+            queryParams.push(status);
+        }
+
+        // Add order by
+        query += ' ORDER BY b.scheduled_date DESC, b.scheduled_time DESC';
+
+        // Execute the query
+        const [rows] = await connection.execute(query, queryParams);
+        await connection.end();
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error('Error fetching user bookings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch bookings',
+            error: error.message
+        });
+    }
+});
+
+// Get bookings for a provider
+app.get('/api/bookings/provider/:providerId', async (req, res) => {
+    try {
+        const { providerId } = req.params;
+        const { status } = req.query;
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Build the query
+        let query = `
+            SELECT 
+                b.booking_id, 
+                b.scheduled_date, 
+                b.scheduled_time, 
+                b.status,
+                l.listing_id,
+                l.title AS service_title,
+                CONCAT(u.first_name, ' ', u.last_name) AS client_name
+            FROM 
+                service_bookings b
+            JOIN 
+                listings l ON b.listing_id = l.listing_id
+            JOIN 
+                user_accounts u ON b.user_id = u.user_id
+            WHERE 
+                b.provider_id = ?
+        `;
+
+        const queryParams = [providerId];
+
+        // Add status filter if provided
+        if (status) {
+            query += ' AND b.status = ?';
+            queryParams.push(status);
+        }
+
+        // Add order by
+        query += ' ORDER BY b.scheduled_date ASC, b.scheduled_time ASC';
+
+        // Execute the query
+        const [rows] = await connection.execute(query, queryParams);
+        await connection.end();
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error('Error fetching provider bookings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch bookings',
+            error: error.message
+        });
+    }
+});
+
+// Update booking status
+app.put('/api/bookings/:bookingId/status', async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+        const { status, user_id } = req.body;
+
+        // Basic validation
+        if (!status) {
+            return res.status(400).json({
+                success: false,
+                message: 'Status is required'
+            });
+        }
+
+        // Validate status value
+        const validStatuses = ['pending_approval', 'approved', 'completed', 'cancelled'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Status must be one of: ${validStatuses.join(', ')}`
+            });
+        }
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Check if booking exists
+        const [bookingCheck] = await connection.execute(
+            'SELECT * FROM service_bookings WHERE booking_id = ?',
+            [bookingId]
+        );
+
+        if (bookingCheck.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'Booking not found'
+            });
+        }
+
+        // Check authorization if user_id is provided
+        // Only the provider or the booking user should be able to update
+        if (user_id) {
+            const booking = bookingCheck[0];
+            if (booking.user_id !== user_id && booking.provider_id !== user_id) {
+                await connection.end();
+                return res.status(403).json({
+                    success: false,
+                    message: 'You are not authorized to update this booking'
+                });
+            }
+        }
+
+        // Update the booking status
+        await connection.execute(
+            'UPDATE service_bookings SET status = ? WHERE booking_id = ?',
+            [status, bookingId]
+        );
+
+        await connection.end();
+
+        res.json({
+            success: true,
+            message: 'Booking status updated successfully',
+            data: {
+                booking_id: parseInt(bookingId),
+                status
+            }
+        });
+    } catch (error) {
+        console.error('Error updating booking status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update booking status',
+            error: error.message
+        });
+    }
+});
+
+// Get a specific booking by ID
+app.get('/api/bookings/:bookingId', async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Get booking with related information
+        const [rows] = await connection.execute(`
+            SELECT 
+                b.*,
+                l.title AS service_title,
+                l.description AS service_description,
+                l.price AS service_price,
+                l.image_path AS service_image,
+                CONCAT(p.first_name, ' ', p.last_name) AS provider_name,
+                CONCAT(u.first_name, ' ', u.last_name) AS client_name
+            FROM 
+                service_bookings b
+            JOIN 
+                listings l ON b.listing_id = l.listing_id
+            JOIN 
+                user_accounts p ON b.provider_id = p.user_id
+            JOIN 
+                user_accounts u ON b.user_id = u.user_id
+            WHERE 
+                b.booking_id = ?
+        `, [bookingId]);
+
+        if (rows.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'Booking not found'
+            });
+        }
+
+        await connection.end();
+
+        res.json({
+            success: true,
+            data: rows[0]
+        });
+    } catch (error) {
+        console.error('Error fetching booking:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch booking',
+            error: error.message
+        });
+    }
+});
+
 // Test endpoint
 app.get('/test', (req, res) => {
     res.json({ message: 'Server is running' });

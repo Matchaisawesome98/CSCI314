@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CleanConnect - My Bookings</title>
+    <style>
+        :root {
+            --primary-color: #ff5722;
+            --secondary-color: #2196f3;
+            --light-gray: #f5f5f5;
+            --dark-gray: #757575;
+            --white: #ffffff;
+            --black: #333333;
+            --shadow: 0 2px 5px rgba(0,0,0,0.1);
+            --radius: 8px;
+            --success-color: #4CAF50;
+            --warning-color: #FFC107;
+            --danger-color: #F44336;
+            --info-color: #2196F3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: var(--black);
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--white);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 15px 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #e64a19;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #1976d2;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+
+        .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+
+        .welcome-banner {
+            background-color: var(--white);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Table Styles */
+        .bookings-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: var(--white);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .bookings-table th,
+        .bookings-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .bookings-table th {
+            background-color: var(--primary-color);
+            color: var(--white);
+            font-weight: 500;
+        }
+
+        .bookings-table tr:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        .bookings-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Status select styles */
+        .status-select {
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background-color: white;
+            font-size: 14px;
+            width: 140px;
+        }
+
+        /* Disabled/completed row styling */
+        .completed-row {
+            opacity: 0.7;
+            background-color: #f9f9f9;
+        }
+
+        /* Loading indicator */
+        .loading-indicator {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* No bookings message */
+        .no-bookings-message {
+            text-align: center;
+            padding: 40px 20px;
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin: 20px 0;
+        }
+
+        /* Confirmation modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-title {
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--white);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .status-pending_approval {
+            background-color: var(--warning-color);
+        }
+
+        .status-approved {
+            background-color: var(--info-color);
+        }
+
+        .status-completed {
+            background-color: var(--success-color);
+        }
+
+        .status-cancelled {
+            background-color: var(--danger-color);
+        }
+
+        /* Make table responsive */
+        @media screen and (max-width: 768px) {
+            .bookings-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .welcome-banner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+
+        /* Filter controls */
+        .filter-controls {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 15px;
+        }
+
+        .filter-label {
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Booking details modal */
+        #booking-details-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 500px;
+            margin: 15% auto;
+            padding: 20px;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .booking-info-group {
+            margin-bottom: 20px;
+        }
+
+        .booking-info-group h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--dark-gray);
+            border-bottom: 1px solid var(--light-gray);
+            padding-bottom: 5px;
+        }
+
+        .booking-info-group p {
+            margin-bottom: 8px;
+        }
+
+        .booking-actions-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 15px;
+        }
+        .booking-actions {
+            display: flex;
+            gap: 10px; /* Adds 10px space between buttons */
+        }
+
+        .search-container {
+            flex-grow: 1;
+            margin: 0 20px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+            font-size: 16px;
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--dark-gray);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="container">
+        <div class="header-content">
+            <a href="../homePage.html" class="logo">CleanConnect</a>
+            <div class="search-container">
+              <input type="text" class="search-input" id="search-input" placeholder="Search in bookings...">
+              <button class="search-btn" id="search-btn">🔍</button>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="../homePage.html" class="btn btn-secondary">Home</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div class="welcome-banner">
+        <div>
+            <h2>My Bookings</h2>
+            <p>View and manage all your cleaning service bookings</p>
+        </div>
+    </div>
+
+    <!-- Filter controls -->
+    <div class="filter-controls">
+        <label class="filter-label">
+            Filter by status:
+            <select id="booking-status-filter" class="status-select">
+                <option value="all">All Bookings</option>
+                <option value="pending_approval">Pending Approval</option>
+                <option value="approved">Approved</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+        </label>
+    </div>
+
+    <!-- Loading indicator - shown while loading data -->
+    <div id="bookings-loading" class="loading-indicator">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- No bookings message - shown when no bookings exist -->
+    <div id="no-bookings-message" class="no-bookings-message" style="display: none;">
+        You have no bookings yet.
+    </div>
+
+    <!-- Bookings table -->
+    <table id="bookings-table" class="bookings-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Provider</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="bookings-table-body">
+            <!-- Bookings will be populated here via JavaScript -->
+        </tbody>
+    </table>
+
+    <!-- Confirmation Modal -->
+    <div id="status-confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Confirm Cancellation</h3>
+            <p id="modal-message">Are you sure you want to cancel this booking?</p>
+            <div class="modal-actions">
+                <button id="modal-cancel" class="btn btn-secondary">No, Keep It</button>
+                <button id="modal-confirm" class="btn btn-danger">Yes, Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Details Modal -->
+    <div id="booking-details-modal">
+        <div class="modal-content">
+            <!-- Content will be dynamically populated -->
+        </div>
+    </div>
+</main>
+</body>
+
+<script src="home_owner_bookingList.js"></script>
+<script>
+// Add this search functionality to your home_owner_bookingList.js file
+
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up search functionality
+    setupSearchFunctionality();
+});
+
+function setupSearchFunctionality() {
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.getElementById('search-btn');
+
+    if (!searchInput || !searchBtn) {
+        console.error('Search elements not found in the DOM');
+        return;
+    }
+
+    console.log('Setting up search functionality');
+
+    // Add clear button to search input
+    addSearchClearButton(searchInput);
+
+    // Search button click handler
+    searchBtn.addEventListener('click', function() {
+        const query = searchInput.value.trim();
+        performSearch(query);
+    });
+
+    // Enter key press handler
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent form submission if in a form
+            const query = searchInput.value.trim();
+            performSearch(query);
+        }
+    });
+
+    // Optional: Live search as user types (with debounce)
+    searchInput.addEventListener('input', debounce(function() {
+        const query = searchInput.value.trim();
+        if (query.length === 0 || query.length > 2) {
+            performSearch(query);
+        }
+    }, 300));
+
+    // Set up status filter change handler if it exists
+    const filterSelect = document.getElementById('booking-status-filter');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', function() {
+            // Re-apply search with current query when filter changes
+            const query = searchInput.value.trim();
+            performSearch(query);
+        });
+    }
+}
+
+function addSearchClearButton(searchInput) {
+    // Check if clear button already exists
+    if (document.getElementById('search-clear-btn')) return;
+
+    const searchContainer = searchInput.parentElement;
+
+    // Create clear button
+    const clearBtn = document.createElement('button');
+    clearBtn.id = 'search-clear-btn';
+    clearBtn.innerHTML = '✕';
+    clearBtn.type = 'button'; // Ensure it doesn't submit forms
+    clearBtn.style.position = 'absolute';
+    clearBtn.style.right = '40px';
+    clearBtn.style.top = '50%';
+    clearBtn.style.transform = 'translateY(-50%)';
+    clearBtn.style.background = 'none';
+    clearBtn.style.border = 'none';
+    clearBtn.style.color = '#757575';
+    clearBtn.style.cursor = 'pointer';
+    clearBtn.style.display = 'none';
+
+    // Add clear button to container
+    searchContainer.appendChild(clearBtn);
+
+    // Show/hide clear button based on input content
+    searchInput.addEventListener('input', function() {
+        clearBtn.style.display = this.value ? 'block' : 'none';
+    });
+
+    // Clear search when button clicked
+    clearBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        searchInput.focus();
+        clearBtn.style.display = 'none';
+        performSearch(''); // Clear search results
+    });
+}
+
+function performSearch(query) {
+    console.log('Performing search for:', query);
+
+    // Get all table rows
+    const tableBody = document.getElementById('bookings-table-body');
+    const rows = tableBody ? tableBody.getElementsByTagName('tr') : [];
+
+    // Get current filter value
+    const filterSelect = document.getElementById('booking-status-filter');
+    const filterValue = filterSelect ? filterSelect.value : 'all';
+
+    let visibleCount = 0;
+
+    // Process each row
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.getElementsByTagName('td');
+
+        // Skip if no cells
+        if (!cells.length) continue;
+
+        // Apply status filter first
+        const statusCell = cells[4]; // Assuming status is in the 5th column (index 4)
+        const statusValue = statusCell.textContent.toLowerCase();
+
+        // Check if row passes the status filter
+        const passesStatusFilter = filterValue === 'all' ||
+                                  statusValue.includes(filterValue.toLowerCase()) ||
+                                  statusCell.querySelector('.status-' + filterValue) !== null;
+
+        if (!passesStatusFilter) {
+            row.style.display = 'none';
+            continue;
+        }
+
+        // If no search query, show all rows that pass the filter
+        if (!query) {
+            row.style.display = '';
+            visibleCount++;
+            continue;
+        }
+
+        // Check if row contains the search query in any cell
+        let matchFound = false;
+        for (let j = 0; j < cells.length - 1; j++) { // Skip the last column (actions)
+            if (cells[j].textContent.toLowerCase().includes(query.toLowerCase())) {
+                matchFound = true;
+                break;
+            }
+        }
+
+        // Show/hide row based on match
+        row.style.display = matchFound ? '' : 'none';
+        if (matchFound) visibleCount++;
+    }
+
+    // Show/hide no results message
+    updateNoResultsMessage(visibleCount, query, filterValue);
+}
+
+function updateNoResultsMessage(visibleCount, query, filterValue) {
+    const table = document.getElementById('bookings-table');
+    const noResultsMsg = document.getElementById('no-bookings-message');
+
+    if (!table || !noResultsMsg) return;
+
+    if (visibleCount === 0) {
+        // Show no results message
+        table.style.display = 'none';
+        noResultsMsg.style.display = 'block';
+
+        // Create appropriate message
+        let message = 'No bookings found';
+        if (query && filterValue !== 'all') {
+            message = `No ${getFilterDisplayName(filterValue)} bookings found matching "${query}"`;
+        } else if (query) {
+            message = `No bookings found matching "${query}"`;
+        } else if (filterValue !== 'all') {
+            message = `No ${getFilterDisplayName(filterValue)} bookings found`;
+        }
+
+        // Add View All button to the message
+        noResultsMsg.innerHTML = `
+            <p>${message}</p>
+            <button id="view-all-btn" class="btn btn-secondary" style="margin-top: 10px;">Show all</button>
+        `;
+
+        // Add event listener to View All button
+        const viewAllBtn = document.getElementById('view-all-btn');
+        if (viewAllBtn) {
+            viewAllBtn.addEventListener('click', function() {
+                resetSearch();
+            });
+        }
+    } else {
+        // Show table, hide message
+        table.style.display = 'table';
+        noResultsMsg.style.display = 'none';
+    }
+}
+
+function resetSearch() {
+    // Reset search input
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+
+    // Reset filter to show all if exists
+    const filterSelect = document.getElementById('booking-status-filter');
+    if (filterSelect) {
+        filterSelect.value = 'all';
+    }
+
+    // Hide clear button
+    const clearBtn = document.getElementById('search-clear-btn');
+    if (clearBtn) {
+        clearBtn.style.display = 'none';
+    }
+
+    // Show all rows that match the filter (now 'all')
+    performSearch('');
+}
+
+function getFilterDisplayName(filterValue) {
+    const filterMap = {
+        'pending_approval': 'pending approval',
+        'approved': 'approved',
+        'completed': 'completed',
+        'cancelled': 'cancelled'
+    };
+
+    return filterMap[filterValue] || filterValue;
+}
+
+// Utility function to debounce frequent events
+function debounce(func, wait) {
+    let timeout;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            func.apply(context, args);
+        }, wait);
+    };
+}
+
+// Function to reset search from outside this module
+function resetBookingSearch() {
+    resetSearch();
+}
+
+// If you have a function that loads the initial bookings data,
+// add this line at the end of that function:
+// resetSearch(); // Reset search when data is loaded
+</script>
+</html>

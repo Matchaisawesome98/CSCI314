@@ -166,3 +166,74 @@ CREATE TABLE shortlisted_listings (
     FOREIGN KEY (user_id) REFERENCES user_accounts(user_id),
     FOREIGN KEY (listing_id) REFERENCES listings(listing_id)
 );
+
+-- Create a table to track listing views
+CREATE TABLE IF NOT EXISTS listing_views (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    listing_id INT NOT NULL,
+    viewer_id VARCHAR(50), -- Can be NULL for anonymous views
+    view_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_agent VARCHAR(255), -- Optional: Store browser/device info
+    view_source VARCHAR(50) DEFAULT 'homepage', -- Where the view came from
+    FOREIGN KEY (listing_id) REFERENCES listings(listing_id),
+    FOREIGN KEY (viewer_id) REFERENCES user_accounts(user_id)
+);
+
+-- Index for faster queries when getting views by date ranges
+CREATE INDEX idx_listing_views_date ON listing_views(view_date);
+CREATE INDEX idx_listing_views_listing ON listing_views(listing_id);
+
+-- Create a view for daily view statistics
+CREATE OR REPLACE VIEW daily_listing_views AS
+SELECT
+    listing_id,
+    DATE(view_date) as view_day,
+    COUNT(*) as daily_views
+FROM
+    listing_views
+GROUP BY
+    listing_id, DATE(view_date);
+
+-- Create a view for weekly view statistics (more compatible approach)
+CREATE OR REPLACE VIEW weekly_listing_views AS
+SELECT
+    listing_id,
+    CONCAT(YEAR(view_date), '-W', WEEK(view_date)) as year_week,
+    COUNT(*) as weekly_views
+FROM
+    listing_views
+GROUP BY
+    listing_id, YEAR(view_date), WEEK(view_date);
+
+CREATE OR REPLACE VIEW monthly_listing_views AS
+SELECT
+    listing_id,
+    EXTRACT(YEAR FROM view_date) as year_part,
+    EXTRACT(MONTH FROM view_date) as month_part,
+    COUNT(*) as monthly_views
+FROM
+    listing_views
+GROUP BY
+    listing_id, EXTRACT(YEAR FROM view_date), EXTRACT(MONTH FROM view_date);
+
+
+-- Create a table to track service bookings
+CREATE TABLE IF NOT EXISTS service_bookings (
+    booking_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(20) NOT NULL,
+    listing_id INT NOT NULL,
+    provider_id VARCHAR(20) NOT NULL,
+    booking_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    scheduled_date DATE NOT NULL,
+    scheduled_time TIME NOT NULL,
+    status ENUM('pending_approval', 'approved', 'completed', 'cancelled') DEFAULT 'pending_approval',
+    FOREIGN KEY (user_id) REFERENCES user_accounts(user_id),
+    FOREIGN KEY (listing_id) REFERENCES listings(listing_id),
+    FOREIGN KEY (provider_id) REFERENCES user_accounts(user_id)
+);
+
+-- Create indexes for faster queries
+CREATE INDEX idx_bookings_user ON service_bookings(user_id);
+CREATE INDEX idx_bookings_provider ON service_bookings(provider_id);
+CREATE INDEX idx_bookings_listing ON service_bookings(listing_id);
+CREATE INDEX idx_bookings_status ON service_bookings(status);

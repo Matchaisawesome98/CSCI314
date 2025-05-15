@@ -407,6 +407,7 @@
                     <div class="user-avatar" id="user-avatar"></div>
                     <span class="user-name" id="username-display">Guest User</span>
                 </div>
+                <button id="logout-btn" class="btn btn-secondary" style="margin-left: 10px;">Log Out</button>
             </div>
         </div>
     </div>
@@ -420,7 +421,9 @@
         </div>
         <div>
             <button class="btn btn-secondary" id="view-shortlist-btn" onclick="window.location.href='../src/home_owner/home_owner_shortlists.html'" style="margin-right: 10px;">My Shortlist ❤️</button>
+            <button class="btn btn-secondary" id="view-bookings-btn" onclick="window.location.href='../src/home_owner/home_owner_bookingList.html'" style="margin-right: 10px;">My Bookings</button>
             <button class="btn" id="my-listings-btn" onclick="window.location.href='../src/home_cleaner/cleanerListings.html'">My Listings</button>
+            <button class="btn btn-secondary" id="manage-bookings-btn" onclick="window.location.href='../src/home_cleaner/cleanerBooking.html'" style="margin-left: 10px;">Manage Bookings</button>
         </div>
     </div>
     <div class="filter-section">
@@ -514,7 +517,20 @@
 
 
 <script>
-// Function to close the modal
+
+    // Logout functionality
+    document.getElementById('logout-btn').addEventListener('click', function() {
+    // Clear user data from localStorage
+    localStorage.removeItem('currentUserId');
+    localStorage.removeItem('currentUsername');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('shortlist');
+
+    // Redirect to login page
+    window.location.href = '../public/index.html';
+    });
+
+    // Function to close the modal
     function closeModal() {
         document.getElementById('service-modal').style.display = 'none';
     }
@@ -578,6 +594,20 @@
         }
     });
 
+    //hides my bookings when user is not a homeowner
+    document.addEventListener('DOMContentLoaded', function() {
+    const userRole = localStorage.getItem('userRole') || 'home_owner';
+    const viewBookingsBtn = document.getElementById('view-bookings-btn');
+
+    if (viewBookingsBtn) {
+        if (userRole === 'home_owner') {
+            viewBookingsBtn.style.display = 'inline-block';
+        } else {
+            viewBookingsBtn.style.display = 'none';
+        }
+    }
+    });
+
     // Run initialization when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
         // If no user ID is stored, set a default one for testing
@@ -597,6 +627,19 @@
 if (typeof loadServices === 'function') {
     window.originalLoadServices = loadServices;
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const userRole = localStorage.getItem('userRole') || 'home_owner';
+    const bookingsBtn = document.getElementById('manage-bookings-btn');
+
+    if (bookingsBtn) {
+        if (userRole === 'home_cleaner') {
+            bookingsBtn.style.display = 'inline-block';
+        } else {
+            bookingsBtn.style.display = 'none';
+        }
+    }
+});
 
 // Update the loadServices function to also cache services for searching
 async function loadServices() {
@@ -693,6 +736,7 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.placeholder = "Search listings... (press Enter)";
 });
 </script>
+<script src="home_owner/home_owner_booking.js"></script>
 <script src="home_cleaner/homeCleanerBCE.js"></script>
 <script src="viewDetails.js"></script>
 <script src="view_tracking.js"></script>

@@ -1,5 +1,7 @@
-class shortListUI{
-    constructor(){
+// Enhanced shortlist.js with improved search functionality following BCE pattern
+
+class shortListUI {
+    constructor() {
         console.log('Initializing shortListUI');
         this.controller = new shortListController();
         this.userId = localStorage.getItem('currentUserId');
@@ -45,6 +47,16 @@ class shortListUI{
         // Find all service cards on the page
         this.serviceCards = document.querySelectorAll('.service-card');
         console.log(`Found ${this.serviceCards.length} service cards`);
+
+        // Find search-related elements
+        this.searchInput = document.getElementById('search-input');
+        this.searchBtn = document.getElementById('search-btn');
+        this.servicesContainer = document.getElementById('services-container');
+
+        // Initialize search UI elements if on shortlist page
+        if (this.searchInput && this.searchBtn) {
+            this.setupSearchUI();
+        }
     }
 
     setupEventListeners() {
@@ -57,6 +69,174 @@ class shortListUI{
             }
         });
         console.log('Event listeners set up');
+
+        // Setup search event listeners if on shortlist page
+        if (this.searchInput && this.searchBtn) {
+            this.setupSearchEventListeners();
+        }
+    }
+
+    // Setup search UI elements
+    setupSearchUI() {
+        console.log('Setting up search UI elements');
+
+        // Add clear button inside the search input if it doesn't exist
+        const searchContainer = this.searchInput.parentElement;
+        if (searchContainer && !document.getElementById('search-clear-btn')) {
+            const clearBtn = document.createElement('button');
+            clearBtn.id = 'search-clear-btn';
+            clearBtn.className = 'search-clear-btn';
+            clearBtn.innerHTML = '✕';
+            clearBtn.style.position = 'absolute';
+            clearBtn.style.right = '40px'; // Position to the left of the search button
+            clearBtn.style.top = '50%';
+            clearBtn.style.transform = 'translateY(-50%)';
+            clearBtn.style.background = 'none';
+            clearBtn.style.border = 'none';
+            clearBtn.style.color = '#757575';
+            clearBtn.style.cursor = 'pointer';
+            clearBtn.style.display = 'none'; // Hide initially
+
+            searchContainer.appendChild(clearBtn);
+
+            // Show/hide clear button based on input content
+            this.searchInput.addEventListener('input', function() {
+                clearBtn.style.display = this.value ? 'block' : 'none';
+            });
+        }
+    }
+
+    // Setup search-related event listeners
+    setupSearchEventListeners() {
+        console.log('Setting up search event listeners');
+
+        // Search button click
+        this.searchBtn.addEventListener('click', () => {
+            this.performSearch();
+        });
+
+        // Live search as user types (with debounce)
+        let debounceTimer;
+        this.searchInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => this.performSearch(), 300); // 300ms debounce
+
+            // Show/hide the clear button
+            const clearBtn = document.getElementById('search-clear-btn');
+            if (clearBtn) {
+                clearBtn.style.display = this.searchInput.value ? 'block' : 'none';
+            }
+        });
+
+        // Search on Enter key
+        this.searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                this.performSearch();
+            }
+        });
+
+        // Clear search when button clicked
+        const clearBtn = document.getElementById('search-clear-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this.searchInput.value = '';
+                this.searchInput.focus();
+                this.performSearch();
+                clearBtn.style.display = 'none';
+            });
+        }
+
+        // Initial search if input has value on page load
+        if (this.searchInput.value.trim()) {
+            this.performSearch();
+        }
+    }
+
+    // Perform search and filter services
+    performSearch() {
+        console.log('Performing search');
+
+        const query = this.searchInput.value.trim().toLowerCase();
+
+        // Remove any previous "no results" message
+        const existingNoResults = document.querySelector('.no-results');
+        if (existingNoResults) {
+            existingNoResults.remove();
+        }
+
+        // If search is empty, show all cards
+        if (!query) {
+            const cards = document.querySelectorAll('.service-card');
+            cards.forEach(card => {
+                card.style.display = '';
+            });
+            return;
+        }
+
+        // Get all service cards
+        const cards = document.querySelectorAll('.service-card');
+        let matchFound = false;
+
+        // Filter cards based on search query
+        cards.forEach(card => {
+            const title = card.querySelector('.service-title')?.textContent.toLowerCase() || '';
+            const description = card.querySelector('.service-description')?.textContent.toLowerCase() || '';
+            const price = card.querySelector('.service-price')?.textContent.toLowerCase() || '';
+            const category = card.querySelector('.tag')?.textContent.toLowerCase() || '';
+            const provider = card.querySelector('.provider-name')?.textContent.toLowerCase() || '';
+
+            // Check if any field contains the search query
+            if (
+                title.includes(query) ||
+                description.includes(query) ||
+                price.includes(query) ||
+                category.includes(query) ||
+                provider.includes(query)
+            ) {
+                card.style.display = '';
+                matchFound = true;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Show "no results" message if no matches found
+        if (!matchFound && cards.length > 0) {
+            this.showNoResultsMessage(query);
+        }
+    }
+
+    // Show no results message
+    showNoResultsMessage(query) {
+        const noResultsElement = document.createElement('div');
+        noResultsElement.className = 'no-results';
+        noResultsElement.style.gridColumn = '1 / -1';
+        noResultsElement.style.textAlign = 'center';
+        noResultsElement.style.padding = '30px';
+        noResultsElement.style.backgroundColor = 'white';
+        noResultsElement.style.borderRadius = '8px';
+        noResultsElement.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+        noResultsElement.style.margin = '20px 0';
+
+        noResultsElement.innerHTML = `
+            <p style="margin-bottom: 15px; font-size: 16px;">No services match your search for "<strong>${query}</strong>"</p>
+            <button class="btn" style="background-color: #ff5722; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer;">Clear Search</button>
+        `;
+
+        this.servicesContainer.appendChild(noResultsElement);
+
+        // Add event listener to the clear button
+        const clearButton = noResultsElement.querySelector('button');
+        clearButton.addEventListener('click', () => {
+            this.searchInput.value = '';
+            this.performSearch();
+
+            // Hide the clear button as well
+            const clearBtn = document.getElementById('search-clear-btn');
+            if (clearBtn) {
+                clearBtn.style.display = 'none';
+            }
+        });
     }
 
     // Improved method to add shortlist buttons to cards with better status checking
@@ -179,38 +359,57 @@ class shortListUI{
 
             // Check if already shortlisted (from button state)
             const isAlreadyShortlisted = buttonElement.classList.contains('shortlisted');
-            if (isAlreadyShortlisted) {
-                this.showToast('Already in your shortlist!', 'info');
-                return;
-            }
 
             // Show loading state
-            buttonElement.innerHTML = '⏳ Adding...';
+            buttonElement.innerHTML = isAlreadyShortlisted ? '⏳ Removing...' : '⏳ Adding...';
             buttonElement.disabled = true;
 
-            // Call controller
-            const result = await this.controller.addToShortlist(this.userId, listingId);
-            console.log('Controller returned result:', result);
+            let result;
 
-            // Update button based on result
-            if (result.success) {
-                buttonElement.innerHTML = '❤️ Shortlisted';
-                buttonElement.classList.add('shortlisted');
-                this.shortlistCache.set(`${this.userId}-${listingId}`, true); // Update cache
-                this.showToast('Added to your shortlist!', 'success');
-            } else {
-                // Check if it failed because it's already shortlisted
-                if (result.error && result.error.includes('already in your shortlist')) {
-                    buttonElement.innerHTML = '❤️ Shortlisted';
-                    buttonElement.classList.add('shortlisted');
-                    this.shortlistCache.set(`${this.userId}-${listingId}`, true); // Update cache
-                    this.showToast('Already in your shortlist!', 'info');
-                } else {
+            // Toggle action based on current state
+            if (isAlreadyShortlisted) {
+                // If already shortlisted, remove from shortlist
+                result = await this.controller.removeFromShortlist(this.userId, listingId);
+                console.log('Controller returned remove result:', result);
+
+                // Update button based on result
+                if (result.success) {
                     buttonElement.innerHTML = '🤍 Shortlist';
                     buttonElement.classList.remove('shortlisted');
                     this.shortlistCache.set(`${this.userId}-${listingId}`, false); // Update cache
+                    this.showToast('Removed from your shortlist!', 'success');
+                } else {
+                    // Failed to remove, revert to shortlisted state
+                    buttonElement.innerHTML = '❤️ Shortlisted';
+                    buttonElement.classList.add('shortlisted');
                     const errorMsg = result.error || 'Unknown error';
-                    this.showToast(errorMsg, 'error');
+                    this.showToast(`Failed to remove: ${errorMsg}`, 'error');
+                }
+            } else {
+                // If not shortlisted, add to shortlist
+                result = await this.controller.addToShortlist(this.userId, listingId);
+                console.log('Controller returned add result:', result);
+
+                // Update button based on result
+                if (result.success) {
+                    buttonElement.innerHTML = '❤️ Shortlisted';
+                    buttonElement.classList.add('shortlisted');
+                    this.shortlistCache.set(`${this.userId}-${listingId}`, true); // Update cache
+                    this.showToast('Added to your shortlist!', 'success');
+                } else {
+                    // Check if it failed because it's already shortlisted
+                    if (result.error && result.error.includes('already in your shortlist')) {
+                        buttonElement.innerHTML = '❤️ Shortlisted';
+                        buttonElement.classList.add('shortlisted');
+                        this.shortlistCache.set(`${this.userId}-${listingId}`, true); // Update cache
+                        this.showToast('Already in your shortlist!', 'info');
+                    } else {
+                        buttonElement.innerHTML = '🤍 Shortlist';
+                        buttonElement.classList.remove('shortlisted');
+                        this.shortlistCache.set(`${this.userId}-${listingId}`, false); // Update cache
+                        const errorMsg = result.error || 'Unknown error';
+                        this.showToast(errorMsg, 'error');
+                    }
                 }
             }
 
@@ -218,10 +417,17 @@ class shortListUI{
             buttonElement.disabled = false;
 
         } catch (error) {
-            console.error('Error adding to shortlist:', error);
-            buttonElement.innerHTML = '🤍 Shortlist';
+            console.error('Error handling shortlist action:', error);
             buttonElement.disabled = false;
-            this.showToast('Failed to add to shortlist. Please try again later.', 'error');
+
+            // Determine which state to revert to based on previous state
+            if (buttonElement.classList.contains('shortlisted')) {
+                buttonElement.innerHTML = '❤️ Shortlisted';
+            } else {
+                buttonElement.innerHTML = '🤍 Shortlist';
+            }
+
+            this.showToast('Failed to update shortlist. Please try again later.', 'error');
         }
     }
 
@@ -322,6 +528,11 @@ class shortListController{
         return await this.entity.addServiceToShortlist(userId, listingId);
     }
 
+    async removeFromShortlist(userId, listingId) {
+        console.log('Controller.removeFromShortlist called with:', userId, listingId);
+        return await this.entity.removeFromShortlist(userId, listingId);
+    }
+
     async checkShortlistStatus(userId, listingId) {
         console.log('Controller.checkShortlistStatus called with:', userId, listingId);
         return await this.entity.checkShortlistStatus(userId, listingId);
@@ -414,6 +625,80 @@ class shortList{
             }
         } catch (error) {
             console.error('Error adding item to shortlist:', error);
+            return { success: false, error: 'Network or server error. Please try again.' };
+        }
+    }
+
+    // Remove a service from the shortlist
+    async removeFromShortlist(userId, listingId) {
+        try {
+            console.log('Entity.removeFromShortlist called with:', userId, listingId);
+
+            // Input validation
+            if (!userId || !listingId) {
+                console.error('Missing required data for shortlist removal:', { userId, listingId });
+                return { success: false, error: 'Missing required user ID or listing ID' };
+            }
+
+            // Make API request to delete the shortlist entry
+            const response = await fetch(`${this.apiBaseUrl}/shortlist`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    listing_id: listingId
+                })
+            });
+
+            console.log('Remove shortlist response status:', response.status);
+
+            // Handle different response status codes
+            if (!response.ok) {
+                if (response.status === 404) {
+                    return { success: false, error: 'Item not found in your shortlist' };
+                } else if (response.status >= 500) {
+                    return { success: false, error: 'Server error. Please try again later.' };
+                } else {
+                    return { success: false, error: `Error: ${response.status}` };
+                }
+            }
+
+            // Parse the response if there is one
+            const responseText = await response.text();
+            let result;
+
+            try {
+                // Only try to parse as JSON if the response has content
+                if (responseText.trim()) {
+                    result = JSON.parse(responseText);
+                    console.log('Parsed remove response:', result);
+                } else {
+                    // Empty response with success status is considered successful
+                    return response.ok
+                        ? { success: true }
+                        : { success: false, error: 'Unknown error occurred' };
+                }
+            } catch (parseError) {
+                console.error('Error parsing remove response as JSON:', parseError);
+                // If response.ok is true, consider it a success despite parsing issues
+                return response.ok
+                    ? { success: true }
+                    : { success: false, error: 'Invalid response from server' };
+            }
+
+            // Return result based on response
+            if (result && result.success) {
+                console.log('Successfully removed item from shortlist');
+                return { success: true };
+            } else {
+                const errorMessage = result?.message || result?.error || 'Failed to remove from shortlist';
+                console.error('Failed to remove item from shortlist:', errorMessage);
+                return { success: false, error: errorMessage };
+            }
+        } catch (error) {
+            console.error('Error removing item from shortlist:', error);
             return { success: false, error: 'Network or server error. Please try again.' };
         }
     }

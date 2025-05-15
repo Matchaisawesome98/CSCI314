@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CleanConnect - Cleaner Bookings</title>
+    <style>
+        :root {
+            --primary-color: #ff5722;
+            --secondary-color: #2196f3;
+            --light-gray: #f5f5f5;
+            --dark-gray: #757575;
+            --white: #ffffff;
+            --black: #333333;
+            --shadow: 0 2px 5px rgba(0,0,0,0.1);
+            --radius: 8px;
+            --success-color: #4CAF50;
+            --warning-color: #FFC107;
+            --danger-color: #F44336;
+            --info-color: #2196F3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: var(--black);
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--white);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 15px 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #e64a19;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #1976d2;
+        }
+
+        .welcome-banner {
+            background-color: var(--white);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Table Styles */
+        .bookings-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: var(--white);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .bookings-table th,
+        .bookings-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .bookings-table th {
+            background-color: var(--primary-color);
+            color: var(--white);
+            font-weight: 500;
+        }
+
+        .bookings-table tr:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        .bookings-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Status select styles */
+        .status-select {
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background-color: white;
+            font-size: 14px;
+            width: 140px;
+        }
+
+        /* Disabled/completed row styling */
+        .completed-row {
+            opacity: 0.7;
+            background-color: #f9f9f9;
+        }
+
+        /* Loading indicator */
+        .loading-indicator {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* No bookings message */
+        .no-bookings-message {
+            text-align: center;
+            padding: 40px 20px;
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin: 20px 0;
+        }
+
+        /* Confirmation modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-title {
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--white);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .status-pending_approval {
+            background-color: var(--warning-color);
+        }
+
+        .status-approved {
+            background-color: var(--info-color);
+        }
+
+        .status-completed {
+            background-color: var(--success-color);
+        }
+
+        .status-cancelled {
+            background-color: var(--danger-color);
+        }
+
+        /* Make table responsive */
+        @media screen and (max-width: 768px) {
+            .bookings-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .welcome-banner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+
+        .search-container {
+            flex-grow: 1;
+            margin: 0 20px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+            font-size: 16px;
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--dark-gray);
+            cursor: pointer;
+        }
+
+.no-results {
+    text-align: center;
+    padding: 40px 20px;
+    background-color: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin: 20px 0;
+}
+    </style>
+</head>
+<body>
+<header>
+    <div class="container">
+        <div class="header-content">
+            <a href="../homePage.html" class="logo">CleanConnect</a>
+            <div class="search-container">
+            <input type="text" class="search-input" id="search-input" placeholder="Search in bookings...">
+            <button class="search-btn" id="search-btn">🔍</button>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="cleanerListings.html" class="btn">My Listings</a>
+                <a href="../homePage.html" class="btn btn-secondary">Home</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div class="welcome-banner">
+        <div>
+            <h2>Manage Bookings</h2>
+            <p>View and manage all your service bookings</p>
+        </div>
+        <div>
+            <button class="btn" onclick="window.location.href='cleanerListings.html'">View Listings</button>
+        </div>
+    </div>
+
+
+    <!-- Loading indicator - shown while loading data -->
+    <div id="bookings-loading" class="loading-indicator">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- No bookings message - shown when no bookings exist -->
+    <div id="no-bookings-message" class="no-bookings-message" style="display: none;">
+        You have no bookings yet.
+    </div>
+
+    <!-- Bookings table -->
+    <table id="bookings-table" class="bookings-table">
+        <thead>
+            <tr>
+                <th>Listing ID</th>
+                <th>Service</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Client</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="bookings-table-body">
+            <!-- Bookings will be populated here via JavaScript -->
+        </tbody>
+    </table>
+
+    <!-- Confirmation Modal -->
+    <div id="status-confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Confirm Status Change</h3>
+            <p id="modal-message">Are you sure you want to change the status of this booking?</p>
+            <div class="modal-actions">
+                <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="modal-confirm" class="btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    // Global variables
+let tableBody;
+let loadingIndicator;
+let noBookingsMessage;
+let bookingsTable;
+let confirmModal;
+let modalMessage;
+let modalConfirmBtn;
+let modalCancelBtn;
+let currentUserId;
+let pendingStatusChange = {
+    bookingId: null,
+    element: null,
+    originalValue: null,
+    newValue: null
+};
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DOM references
+    tableBody = document.getElementById('bookings-table-body');
+    loadingIndicator = document.getElementById('bookings-loading');
+    noBookingsMessage = document.getElementById('no-bookings-message');
+    bookingsTable = document.getElementById('bookings-table');
+    confirmModal = document.getElementById('status-confirm-modal');
+    modalMessage = document.getElementById('modal-message');
+    modalConfirmBtn = document.getElementById('modal-confirm');
+    modalCancelBtn = document.getElementById('modal-cancel');
+
+    // Get current user ID from localStorage
+    currentUserId = localStorage.getItem('currentUserId') || null;
+
+    // Load bookings when page loads
+    loadBookings();
+
+    // Set up modal buttons
+    modalConfirmBtn.addEventListener('click', confirmStatusChange);
+    modalCancelBtn.addEventListener('click', cancelStatusChange);
+
+    // Set up search functionality
+    setupSearch();
+});
+
+/**
+ * Load all bookings for the current provider
+ */
+async function loadBookings() {
+    try {
+        if (!currentUserId) {
+            showError('User ID not found. Please log in again.');
+            return;
+        }
+
+        // Show loading indicator
+        loadingIndicator.style.display = 'flex';
+        bookingsTable.style.display = 'none';
+
+        // Fetch bookings from API
+        const response = await fetch(`http://localhost:3000/api/bookings/provider/${currentUserId}`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // Hide loading indicator
+        loadingIndicator.style.display = 'none';
+
+        if (result.success && result.data && result.data.length > 0) {
+            // Display bookings
+            displayBookings(result.data);
+            bookingsTable.style.display = 'table';
+
+            // Clear search input if this was called from "Show All" button
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) searchInput.value = '';
+
+            // Remove any existing "no results" message
+            const existingNoResults = document.querySelector('.no-results');
+            if (existingNoResults) {
+                existingNoResults.remove();
+            }
+        } else {
+            // Show no bookings message
+            noBookingsMessage.style.display = 'block';
+            bookingsTable.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error loading bookings:', error);
+        showError('Failed to load bookings. Please try again later.');
+    }
+}
+
+/**
+ * Display bookings in table
+ */
+function displayBookings(bookings) {
+    // Clear table body
+    tableBody.innerHTML = '';
+
+    // Check if we have bookings to display
+    if (bookings.length === 0) {
+        noBookingsMessage.style.display = 'block';
+        bookingsTable.style.display = 'none';
+        return;
+    }
+
+    // Hide no bookings message and show table
+    noBookingsMessage.style.display = 'none';
+    bookingsTable.style.display = 'table';
+
+    // Sort bookings: pending first, then by date (upcoming first)
+    bookings.sort((a, b) => {
+        // First sort by status priority
+        const statusPriority = { 'pending_approval': 0, 'approved': 1, 'completed': 2, 'cancelled': 3 };
+        const priorityDiff = statusPriority[a.status] - statusPriority[b.status];
+
+        if (priorityDiff !== 0) return priorityDiff;
+
+        // Then sort by date (upcoming first)
+        return new Date(a.scheduled_date) - new Date(b.scheduled_date);
+    });
+
+    // Create rows for each booking
+    bookings.forEach(booking => {
+        const row = document.createElement('tr');
+
+        // Add class for completed bookings
+        if (booking.status === 'completed' || booking.status === 'cancelled') {
+            row.classList.add('completed-row');
+        }
+
+        // Format date and time
+        const formattedDate = formatDate(booking.scheduled_date);
+        const formattedTime = formatTime(booking.scheduled_time);
+
+        // Limit description length
+        const shortDescription = booking.service_description
+            ? (booking.service_description.length > 50
+                ? booking.service_description.substring(0, 50) + '...'
+                : booking.service_description)
+            : 'No description';
+
+        // Create row content
+        row.innerHTML = `
+            <td>${booking.listing_id || '—'}</td>
+            <td>${booking.service_title || 'Unnamed Service'}</td>
+            <td title="${booking.service_description || ''}">${shortDescription}</td>
+            <td>${formattedDate}</td>
+            <td>${formattedTime}</td>
+            <td>${booking.client_name || 'Unknown'}</td>
+            <td>${createStatusDropdown(booking)}</td>
+        `;
+
+        tableBody.appendChild(row);
+    });
+
+    // Add event listeners to status dropdowns
+    addStatusChangeListeners();
+}
+
+/**
+ * Create status dropdown based on booking status
+ */
+function createStatusDropdown(booking) {
+    const isDisabled = booking.status === 'completed' || booking.status === 'cancelled';
+    const statuses = [
+        { value: 'pending_approval', text: 'Pending Approval' },
+        { value: 'approved', text: 'Approved' },
+        { value: 'completed', text: 'Completed' },
+        { value: 'cancelled', text: 'Cancelled' }
+    ];
+
+    // Create select element
+    const selectHtml = `
+        <select
+            class="status-select"
+            data-booking-id="${booking.booking_id}"
+            ${isDisabled ? 'disabled' : ''}
+        >
+            ${statuses.map(status => `
+                <option
+                    value="${status.value}"
+                    ${booking.status === status.value ? 'selected' : ''}
+                >
+                    ${status.text}
+                </option>
+            `).join('')}
+        </select>
+    `;
+
+    return selectHtml;
+}
+
+/**
+ * Add event listeners to status dropdowns
+ */
+function addStatusChangeListeners() {
+    document.querySelectorAll('.status-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const bookingId = this.getAttribute('data-booking-id');
+            const newStatus = this.value;
+            const originalValue = this.getAttribute('data-original-value') ||
+                                 Array.from(this.options).find(opt => opt.defaultSelected).value;
+
+            // Store pending change data
+            pendingStatusChange = {
+                bookingId,
+                element: this,
+                originalValue,
+                newValue: newStatus
+            };
+
+            // Show confirmation modal
+            showConfirmationModal(formatStatus(newStatus));
+        });
+    });
+}
+
+/**
+ * Show confirmation modal
+ */
+function showConfirmationModal(newStatusText) {
+    modalMessage.textContent = `Are you sure you want to change this booking to "${newStatusText}" status?`;
+    confirmModal.style.display = 'flex';
+}
+
+/**
+ * Confirm status change
+ */
+function confirmStatusChange() {
+    // Hide modal
+    confirmModal.style.display = 'none';
+
+    // Proceed with status update
+    if (pendingStatusChange.bookingId && pendingStatusChange.newValue) {
+        updateBookingStatus(
+            pendingStatusChange.bookingId,
+            pendingStatusChange.newValue
+        );
+    }
+}
+
+/**
+ * Cancel status change
+ */
+function cancelStatusChange() {
+    // Hide modal
+    confirmModal.style.display = 'none';
+
+    // Revert select to original value
+    if (pendingStatusChange.element && pendingStatusChange.originalValue) {
+        pendingStatusChange.element.value = pendingStatusChange.originalValue;
+    }
+
+    // Clear pending change
+    pendingStatusChange = {
+        bookingId: null,
+        element: null,
+        originalValue: null,
+        newValue: null
+    };
+}
+
+/**
+ * Update a booking status
+ */
+async function updateBookingStatus(bookingId, newStatus) {
+    try {
+        // Show loading state
+        loadingIndicator.style.display = 'flex';
+
+        // Send update to API
+        const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                status: newStatus,
+                user_id: currentUserId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Apply styling if status is now 'completed' or 'cancelled'
+            if (newStatus === 'completed' || newStatus === 'cancelled') {
+                const row = pendingStatusChange.element.closest('tr');
+                if (row) {
+                    row.classList.add('completed-row');
+                    pendingStatusChange.element.disabled = true;
+                }
+            }
+
+            // Show success message
+            alert(`Booking successfully marked as ${formatStatus(newStatus)}`);
+        } else {
+            throw new Error(result.message || 'Failed to update booking');
+        }
+    } catch (error) {
+        console.error('Error updating booking:', error);
+        alert(`Error: ${error.message}`);
+
+        // Revert the dropdown to original value
+        if (pendingStatusChange.element && pendingStatusChange.originalValue) {
+            pendingStatusChange.element.value = pendingStatusChange.originalValue;
+        }
+    } finally {
+        loadingIndicator.style.display = 'none';
+
+        // Clear pending change
+        pendingStatusChange = {
+            bookingId: null,
+            element: null,
+            originalValue: null,
+            newValue: null
+        };
+    }
+}
+
+/**
+ * Format status for display
+ */
+function formatStatus(status) {
+    switch (status) {
+        case 'pending_approval': return 'Pending Approval';
+        case 'approved': return 'Approved';
+        case 'completed': return 'Completed';
+        case 'cancelled': return 'Cancelled';
+        default: return status.replace('_', ' ');
+    }
+}
+
+/**
+ * Format date for display
+ */
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+}
+
+/**
+ * Format time for display
+ */
+function formatTime(timeString) {
+    if (!timeString) return 'N/A';
+
+    // Convert 24h time to 12h format
+    const timeParts = timeString.split(':');
+    if (timeParts.length < 2) return timeString;
+
+    let hours = parseInt(timeParts[0]);
+    const minutes = timeParts[1];
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+
+    hours = hours % 12;
+    hours = hours ? hours : 12; // Convert 0 to 12
+
+    return `${hours}:${minutes} ${ampm}`;
+}
+
+/**
+ * Show error message
+ */
+function showError(message) {
+    noBookingsMessage.style.display = 'block';
+    noBookingsMessage.innerHTML = `
+        <p style="color: #F44336;">${message}</p>
+        <button class="btn" onclick="window.location.reload()" style="margin-top: 10px;">Try Again</button>
+    `;
+    loadingIndicator.style.display = 'none';
+    bookingsTable.style.display = 'none';
+}
+
+/**
+ * Set up search functionality
+ */
+function setupSearch() {
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.getElementById('search-btn');
+
+    // Function to handle search
+    function performSearch() {
+        const query = searchInput.value.trim().toLowerCase();
+
+        // Skip empty searches
+        if (!query) {
+            loadBookings();
+            return;
+        }
+
+        // Get all table rows except the header
+        const rows = document.querySelectorAll('#bookings-table-body tr');
+        let matchFound = false;
+
+        // Show all rows first (in case there was a previous search)
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+
+        // Hide rows that don't match the search
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(query)) {
+                matchFound = true;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Show message if no matches
+        const existingNoResults = document.querySelector('.no-results');
+        if (existingNoResults) {
+            existingNoResults.remove();
+        }
+
+        if (rows.length > 0 && !matchFound) {
+            const noResultsDiv = document.createElement('div');
+            noResultsDiv.className = 'no-results';
+            noResultsDiv.innerHTML = `
+                <p>No bookings match your search for "${query}"</p>
+                <button class="btn" onclick="loadBookings(); document.getElementById('search-input').value = '';">Show All</button>
+            `;
+
+            if (bookingsTable && bookingsTable.parentNode) {
+                bookingsTable.parentNode.insertBefore(noResultsDiv, bookingsTable.nextSibling);
+            }
+        }
+    }
+
+    // Event listeners
+    if (searchBtn) {
+        searchBtn.addEventListener('click', performSearch);
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+    }
+}
+</script>
+</body>
+</html>
