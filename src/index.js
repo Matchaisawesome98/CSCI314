@@ -60,7 +60,9 @@ class LoginUI {
 
         // Call the login controller
         try {
-            await this.loginController.processLogin(credentials.username, credentials.password);
+            // Changed to use createUserData and authenticate directly
+            const userData = this.loginController.createUserData(credentials.username, credentials.password);
+            await this.loginController.authenticate(userData);
         } catch (error) {
             console.error('Error during login processing:', error);
             this.displayErrorMsg();
@@ -155,6 +157,7 @@ class LoginUI {
             this.displayErrorMsg();
         }
     }
+
     static {
         console.log('LoginUI static initializer running');
         let isInitialized = false;
@@ -294,13 +297,16 @@ class ProcessLoginController {
         console.log('ProcessLoginController initialized');
     }
 
-    async processLogin(username, password) {
-        console.log('Processing login attempt');
-        // Create user entity data
-        const userData = {
+    createUserData(username, password) {
+        console.log('Creating user data object');
+        return {
             username: username,
             password: password
         };
+    }
+
+    async authenticate(userData) {
+        console.log('Processing login attempt for:', userData.username);
 
         try {
             // Call entity to authenticate
@@ -311,7 +317,6 @@ class ProcessLoginController {
             this.loginUI.handleLoginResult(authResult);
         } catch (error) {
             console.error('Login process error:', error);
-            // Use the boundary layer method for error display
             if (this.loginUI) {
                 this.loginUI.displayErrorMsg();
             } else {
@@ -337,7 +342,7 @@ class ProcessLogoutController {
     async processLogout() {
         try {
             // Call entity to logout
-            const result = await this.entity.logout();
+            const result = await this.entity.processLogout();
             console.log('Logout result:', result);
 
             if (result.success) {
@@ -431,7 +436,7 @@ class UserAuthEntity {
     /**
      * Log user out (clear session/local storage)
      */
-    async logout() {
+    async processLogout() {
         try {
             const userId = localStorage.getItem('currentUserId');
 
