@@ -735,6 +735,69 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update placeholder
     searchInput.placeholder = "Search listings... (press Enter)";
 });
+// Helper function to initialize or reinitialize shortlist buttons
+function initializeShortlistButtons() {
+    console.log("Initializing shortlist buttons");
+
+    // Check if shortlist UI exists and user is a home owner
+    const userRole = localStorage.getItem('userRole') || 'home_owner';
+    const userId = localStorage.getItem('currentUserId');
+
+    if (typeof shortListUI === 'function' && userRole === 'home_owner' && userId) {
+        // Create a new instance to add buttons
+        console.log("Creating new shortListUI instance");
+        new shortListUI();
+    } else {
+        console.log("Not initializing shortlist - conditions not met:", {
+            classExists: typeof shortListUI === 'function',
+            userRole,
+            userId
+        });
+    }
+}
+
+// Custom load event handler
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded - Setting up shortlist integration");
+
+    // Initialize once the page is loaded
+    setTimeout(initializeShortlistButtons, 500);
+
+    // Hook into the service loading process to reinitialize after services load
+    const originalLoadServices = window.loadServices;
+    if (typeof originalLoadServices === 'function') {
+        window.loadServices = async function() {
+            console.log("Services loading - will initialize shortlist after");
+
+            // Call the original function
+            await originalLoadServices.apply(this, arguments);
+
+            // Then initialize shortlist buttons after a slight delay
+            // to ensure DOM is updated
+            setTimeout(initializeShortlistButtons, 300);
+        };
+
+        console.log("Enhanced loadServices with shortlist initialization");
+    }
+
+    // Check periodically for a few seconds to handle any delayed rendering
+    let checkCount = 0;
+    const interval = setInterval(() => {
+        const cards = document.querySelectorAll('.service-card');
+        const shortlistButtons = document.querySelectorAll('.shortlist-btn');
+
+        console.log(`Periodic check: Found ${cards.length} cards and ${shortlistButtons.length} shortlist buttons`);
+
+        if (cards.length > 0 && shortlistButtons.length === 0 && checkCount < 5) {
+            initializeShortlistButtons();
+        }
+
+        checkCount++;
+        if (checkCount >= 5) {
+            clearInterval(interval);
+        }
+    }, 1000);
+});
 </script>
 <script src="home_owner/home_owner_booking.js"></script>
 <script src="home_cleaner/homeCleanerBCE.js"></script>

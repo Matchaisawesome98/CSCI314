@@ -465,10 +465,6 @@ class readServiceController {
     }
 }
 
-
-
-
-
 //Boundary for the updating and deletion of user listingso
 class serviceManagementUI {
     constructor() {

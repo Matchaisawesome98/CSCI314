@@ -1,11 +1,11 @@
-// Home Owner Booking with Boundary-Control-Entity (BCE) architectural pattern
-
 /**
  * BookingUI - Boundary class responsible for UI interactions
  * Handles all DOM interactions and UI updates
  */
 class BookingUI {
     constructor() {
+        console.log('Initializing BookingUI');
+
         // Initialize instance variables
         this.serviceId = null;
         this.providerId = null;
@@ -14,10 +14,25 @@ class BookingUI {
         this.currentUserId = null;
         this.selectedDate = null;
         this.selectedTime = null;
+        this.bookedSlots = {};
 
-        // Initialize controller
-        this.controller = new BookingController();
+        // Initialize controllers
+        this.serviceDetailsController = new ServiceDetailsController();
+        this.bookedSlotsController = new BookedSlotsController();
+        this.createBookingController = new CreateBookingController();
 
+        // Only proceed if page is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.initialize());
+        } else {
+            this.initialize();
+        }
+    }
+
+    /**
+     * Initialize the booking system
+     */
+    initialize() {
         // Initialize DOM elements and setup event listeners
         this.initDomElements();
         this.setupEventListeners();
@@ -30,6 +45,7 @@ class BookingUI {
      * Initialize DOM element references
      */
     initDomElements() {
+        console.log('Initializing DOM elements');
         this.bookBtn = document.getElementById('contact-provider-btn');
         this.modal = document.getElementById('booking-modal');
         this.closeModalBtn = document.getElementById('close-modal');
@@ -47,6 +63,7 @@ class BookingUI {
      * Set up event listeners for UI elements
      */
     setupEventListeners() {
+        console.log('Setting up event listeners');
         if (this.bookBtn) {
             this.bookBtn.addEventListener('click', () => this.showBookingModal());
         }
@@ -95,13 +112,13 @@ class BookingUI {
      */
     async fetchServiceDetails() {
         try {
-            const result = await this.controller.getServiceDetailsController(this.serviceId);
+            const result = await this.serviceDetailsController.getServiceDetails(this.serviceId);
 
             if (result.success && result.data) {
                 const service = result.data;
                 this.providerId = service.user_id;
                 this.serviceName = service.title || 'Unnamed Service';
-                this.providerName = this.controller.getProviderName(service);
+                this.providerName = this.getProviderName(service);
 
                 // Update the modal with service and provider names
                 document.getElementById('booking-service-title').textContent = this.serviceName;
@@ -133,7 +150,7 @@ class BookingUI {
             }
 
             // Get booked slots from controller
-            const result = await this.controller.getBookedSlotsController(this.providerId);
+            const result = await this.bookedSlotsController.getBookedSlots(this.providerId);
             this.bookedSlots = result;
 
             console.log('Booked slots loaded:', this.bookedSlots);
@@ -327,8 +344,8 @@ class BookingUI {
             // Format end time (e.g., "9:00")
             const endHour = (hour + 1) % 24;
 
-            // Format as "8:00 AM - 9:00 AM" using controller
-            const timeRange = this.controller.formatTimeSlotRange(hour, endHour);
+            // Format as "8:00 AM - 9:00 AM"
+            const timeRange = this.formatTimeSlotRange(hour, endHour);
 
             // Set the display text as a range
             timeSlot.textContent = timeRange;
@@ -391,12 +408,12 @@ class BookingUI {
         if (!this.summaryContainer) return;
 
         if (this.selectedDate && this.selectedTime) {
-            // Format date for display using controller
-            const formattedDate = this.controller.formatDateForDisplay(this.selectedDate);
+            // Format date for display
+            const formattedDate = this.formatDateForDisplay(this.selectedDate);
 
-            // Format selected time range using controller
+            // Format selected time range
             const hour = parseInt(this.selectedTime.split(':')[0]);
-            const timeRange = this.controller.formatTimeSlotRange(hour, (hour + 1) % 24);
+            const timeRange = this.formatTimeSlotRange(hour, (hour + 1) % 24);
 
             this.summaryContainer.innerHTML = `
                 <h3>Booking Summary</h3>
@@ -410,7 +427,7 @@ class BookingUI {
                 <h3>Booking Summary</h3>
                 <p><strong>Service:</strong> ${this.serviceName}</p>
                 <p><strong>Provider:</strong> ${this.providerName}</p>
-                <p><strong>Date:</strong> ${this.controller.formatDateForDisplay(this.selectedDate)}</p>
+                <p><strong>Date:</strong> ${this.formatDateForDisplay(this.selectedDate)}</p>
                 <p>Please select a time slot</p>
             `;
         } else {
@@ -450,16 +467,16 @@ class BookingUI {
             console.log('Sending booking data:', bookingData);
 
             // Use controller to create booking
-            const result = await this.controller.createBookingController(bookingData);
+            const result = await this.createBookingController.createBooking(bookingData);
 
             if (result.success) {
                 // Show success message
-                alert(`Booking confirmed for ${this.serviceName} on ${this.controller.formatDateForDisplay(this.selectedDate)} at ${this.selectedTime}. You will receive a confirmation email shortly.`);
+                alert(`Booking confirmed for ${this.serviceName} on ${this.formatDateForDisplay(this.selectedDate)} at ${this.selectedTime}. You will receive a service confirmation shortly.`);
 
                 // Close the modal
                 this.closeModal();
             } else {
-                throw new Error(result.message || 'Booking failed');
+                throw new Error(result.error || 'Booking failed');
             }
         } catch (error) {
             console.error('Error confirming booking:', error);
@@ -490,137 +507,6 @@ class BookingUI {
             this.confirmBookingBtn.disabled = true;
             this.confirmBookingBtn.textContent = 'Confirm Booking';
         }
-    }
-
-    /**
-     * Helper function to get URL parameters
-     */
-    getUrlParameter(name) {
-        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-        const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-        const results = regex.exec(location.search);
-        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-    }
-
-    // Static initializer to create instance when document is loaded
-    static {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => new BookingUI());
-        } else {
-            // DOM is already loaded
-            new BookingUI();
-        }
-    }
-}
-
-/**
- * BookingController - Controller class handling business logic
- * Mediates between UI and entity layer
- */
-class BookingController {
-    constructor() {
-        this.entity = new BookingEntity();
-    }
-
-    /**
-     * Get service details from entity layer
-     */
-    async getServiceDetailsController(serviceId) {
-        if (!serviceId) {
-            return { success: false, error: 'Missing service ID' };
-        }
-
-        try {
-            return await this.entity.getServiceDetails(serviceId);
-        } catch (error) {
-            console.error('Controller: Error getting service details:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    /**
-     * Get booked slots for a provider from entity layer
-     */
-    async getBookedSlotsController(providerId) {
-        if (!providerId) {
-            console.warn('Controller: Missing provider ID for booked slots');
-            return {};
-        }
-
-        try {
-            const result = await this.entity.getBookedSlots(providerId);
-
-            // Process the data from the entity layer into the format needed by the UI
-            if (result.success && result.data && result.data.bookings) {
-                const bookedSlots = {};
-
-                result.data.bookings.forEach(booking => {
-                    const date = booking.scheduled_date;
-                    const time = booking.scheduled_time.substring(0, 5); // Convert "HH:MM:SS" to "HH:MM"
-
-                    if (!bookedSlots[date]) {
-                        bookedSlots[date] = [];
-                    }
-
-                    if (!bookedSlots[date].includes(time)) {
-                        bookedSlots[date].push(time);
-                    }
-                });
-
-                return bookedSlots;
-            } else {
-                // Return empty object if no data
-                console.warn('No booking data received from API, returning empty slots');
-                return {};
-            }
-        } catch (error) {
-            console.error('Controller: Error getting booked slots:', error);
-            // Return empty object if API fails
-            return {};
-        }
-    }
-
-    /**
-     * Create a new booking through entity layer
-     */
-    async createBookingController(bookingData) {
-        try {
-            // Validate booking data
-            if (!this.validateBookingData(bookingData)) {
-                return { success: false, error: 'Invalid booking data' };
-            }
-
-            // Call the entity to make the API request
-            return await this.entity.createBooking(bookingData);
-        } catch (error) {
-            console.error('Controller: Error creating booking:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    /**
-     * Validate booking data
-     */
-    validateBookingData(data) {
-        // Check required fields
-        if (!data.user_id || !data.listing_id || !data.provider_id ||
-            !data.scheduled_date || !data.scheduled_time) {
-            return false;
-        }
-
-        // Validate date format (YYYY-MM-DD)
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!dateRegex.test(data.scheduled_date)) {
-            return false;
-        }
-
-        // Validate time format (HH:MM:SS)
-        const timeRegex = /^\d{2}:\d{2}:\d{2}$/;
-        if (!timeRegex.test(data.scheduled_time)) {
-            return false;
-        }
-
-        return true;
     }
 
     /**
@@ -680,12 +566,184 @@ class BookingController {
         // Last resort
         return 'Unknown Provider';
     }
+
+    /**
+     * Helper function to get URL parameters
+     */
+    getUrlParameter(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        const results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    }
+
+    // Static initializer to create instance when document is loaded
+    static {
+        console.log('BookingUI static initializer running');
+        let isInitialized = false;
+
+        const initializeUI = () => {
+            if (isInitialized) return;
+            isInitialized = true;
+
+            // Wrapped in setTimeout to ensure DOM is completely ready
+            setTimeout(() => {
+                console.log('Creating new BookingUI instance');
+                new BookingUI();
+            }, 0);
+        };
+
+        // Handle various page load scenarios
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeUI);
+        } else {
+            initializeUI();
+        }
+
+        // Also initialize when window is fully loaded
+        window.addEventListener('load', () => {
+            console.log('Window load event, ensuring BookingUI is initialized');
+            initializeUI();
+        });
+    }
+}
+
+// ===================== CONTROLLER LAYER =====================
+// Each controller handles specific operations and business logic
+
+/**
+ * Controller for getting service details
+ */
+class ServiceDetailsController {
+    constructor() {
+        console.log('Initializing ServiceDetailsController');
+        this.entity = new BookingEntity();
+    }
+
+    /**
+     * Get service details from entity layer
+     */
+    async getServiceDetails(serviceId) {
+        if (!serviceId) {
+            return { success: false, error: 'Missing service ID' };
+        }
+
+        try {
+            return await this.entity.getServiceDetails(serviceId);
+        } catch (error) {
+            console.error('Controller: Error getting service details:', error);
+            return { success: false, error: error.message };
+        }
+    }
 }
 
 /**
- * BookingEntity - Entity class for data access
- * Handles API calls and data storage
+ * Controller for getting booked slots
  */
+class BookedSlotsController {
+    constructor() {
+        console.log('Initializing BookedSlotsController');
+        this.entity = new BookingEntity();
+    }
+
+    /**
+     * Get booked slots for a provider from entity layer
+     */
+    async getBookedSlots(providerId) {
+        if (!providerId) {
+            console.warn('Controller: Missing provider ID for booked slots');
+            return {};
+        }
+
+        try {
+            const result = await this.entity.getBookedSlots(providerId);
+
+            // Process the data from the entity layer into the format needed by the UI
+            if (result.success && result.data && result.data.bookings) {
+                const bookedSlots = {};
+
+                result.data.bookings.forEach(booking => {
+                    const date = booking.scheduled_date;
+                    const time = booking.scheduled_time.substring(0, 5); // Convert "HH:MM:SS" to "HH:MM"
+
+                    if (!bookedSlots[date]) {
+                        bookedSlots[date] = [];
+                    }
+
+                    if (!bookedSlots[date].includes(time)) {
+                        bookedSlots[date].push(time);
+                    }
+                });
+
+                return bookedSlots;
+            } else {
+                // Return empty object if no data
+                console.warn('No booking data received from API, returning empty slots');
+                return {};
+            }
+        } catch (error) {
+            console.error('Controller: Error getting booked slots:', error);
+            // Return empty object if API fails
+            return {};
+        }
+    }
+}
+
+/**
+ * Controller for creating bookings
+ */
+class CreateBookingController {
+    constructor() {
+        console.log('Initializing CreateBookingController');
+        this.entity = new BookingEntity();
+    }
+
+    /**
+     * Create a new booking through entity layer
+     */
+    async createBooking(bookingData) {
+        try {
+            // Validate booking data
+            if (!this.validateBookingData(bookingData)) {
+                return { success: false, error: 'Invalid booking data' };
+            }
+
+            // Call the entity to make the API request
+            return await this.entity.createBooking(bookingData);
+        } catch (error) {
+            console.error('Controller: Error creating booking:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Validate booking data
+     */
+    validateBookingData(data) {
+        // Check required fields
+        if (!data.user_id || !data.listing_id || !data.provider_id ||
+            !data.scheduled_date || !data.scheduled_time) {
+            return false;
+        }
+
+        // Validate date format (YYYY-MM-DD)
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(data.scheduled_date)) {
+            return false;
+        }
+
+        // Validate time format (HH:MM:SS)
+        const timeRegex = /^\d{2}:\d{2}:\d{2}$/;
+        if (!timeRegex.test(data.scheduled_time)) {
+            return false;
+        }
+
+        return true;
+    }
+}
+
+// ===================== ENTITY LAYER =====================
+// Single entity class that handles all data operations
 class BookingEntity {
     constructor() {
         this.apiBaseUrl = 'http://localhost:3000/api';
@@ -780,6 +838,3 @@ class BookingEntity {
         }
     }
 }
-
-// This will initialize the BookingUI when the DOM is loaded
-// The static initializer in the BookingUI class takes care of this

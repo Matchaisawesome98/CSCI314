@@ -1,12 +1,19 @@
-// Enhanced shortlist.js with improved search functionality following BCE pattern
-
+// ===================== BOUNDARY LAYER (UI) =====================
+// Handles all UI interactions and delegates to appropriate controllers
 class shortListUI {
     constructor() {
-        console.log('Initializing shortListUI');
-        this.controller = new shortListController();
+        console.log('Initializing ShortListUI');
+
+        // Initialize controllers
+        this.addController = new AddToShortlistController();
+        this.removeController = new RemoveFromShortlistController();
+        this.checkController = new CheckShortlistController();
+        this.getUserController = new GetUserShortlistController();
+
+        // User info
         this.userId = localStorage.getItem('currentUserId');
         this.userRole = localStorage.getItem('userRole') || 'home_owner';
-        this.shortlistCache = new Map(); // Cache moved here from controller
+        this.shortlistCache = new Map(); // Cache for shortlist status
 
         // Only proceed if we have a user ID and they're a home owner
         if (this.userId && this.userRole === 'home_owner') {
@@ -27,7 +34,7 @@ class shortListUI {
 
         console.log('Preloading shortlist data for user:', this.userId);
         try {
-            const result = await this.controller.getUserShortlist(this.userId);
+            const result = await this.getUserController.getUserShortlist(this.userId);
             if (result.success) {
                 // Populate cache with shortlisted items
                 result.data.forEach(item => {
@@ -315,7 +322,7 @@ class shortListUI {
             }
 
             // If not in cache, check server
-            const checkResult = await this.controller.checkShortlistStatus(this.userId, listingId);
+            const checkResult = await this.checkController.checkShortlistStatus(this.userId, listingId);
             console.log(`Shortlist check for listing ${listingId}:`, checkResult);
 
             // Enable the button
@@ -369,7 +376,7 @@ class shortListUI {
             // Toggle action based on current state
             if (isAlreadyShortlisted) {
                 // If already shortlisted, remove from shortlist
-                result = await this.controller.removeFromShortlist(this.userId, listingId);
+                result = await this.removeController.removeFromShortlist(this.userId, listingId);
                 console.log('Controller returned remove result:', result);
 
                 // Update button based on result
@@ -387,7 +394,7 @@ class shortListUI {
                 }
             } else {
                 // If not shortlisted, add to shortlist
-                result = await this.controller.addToShortlist(this.userId, listingId);
+                result = await this.addController.addToShortlist(this.userId, listingId);
                 console.log('Controller returned add result:', result);
 
                 // Update button based on result
@@ -486,7 +493,7 @@ class shortListUI {
         console.log('Shortlist cache cleared');
     }
 
-    // Improved initializer with explicit page load checks
+    // Static initializer with explicit page load checks
     static {
         console.log('shortListUI static initializer running');
         let isInitialized = false;
@@ -517,42 +524,75 @@ class shortListUI {
     }
 }
 
-class shortListController{
-    constructor(){
-        console.log('Initializing shortListController');
-        this.entity = new shortList();
+
+// ===================== CONTROLLER LAYER =====================
+// Each controller handles specific operations and business logic
+
+// Controller for adding items to shortlist
+class AddToShortlistController {
+    constructor() {
+        console.log('Initializing AddToShortlistController');
+        this.entity = new ShortListEntity();
     }
 
     async addToShortlist(userId, listingId) {
-        console.log('Controller.addToShortlist called with:', userId, listingId);
-        return await this.entity.addServiceToShortlist(userId, listingId);
+        console.log('AddToShortlistController.addToShortlist called with:', userId, listingId);
+        // Pass to entity, could add business logic here if needed
+        return await this.entity.addToShortlist(userId, listingId);
+    }
+}
+
+// Controller for removing items from shortlist
+class RemoveFromShortlistController {
+    constructor() {
+        console.log('Initializing RemoveFromShortlistController');
+        this.entity = new ShortListEntity();
     }
 
     async removeFromShortlist(userId, listingId) {
-        console.log('Controller.removeFromShortlist called with:', userId, listingId);
+        console.log('RemoveFromShortlistController.removeFromShortlist called with:', userId, listingId);
         return await this.entity.removeFromShortlist(userId, listingId);
+    }
+}
+
+// Controller for checking shortlist status
+class CheckShortlistController {
+    constructor() {
+        console.log('Initializing CheckShortlistController');
+        this.entity = new ShortListEntity();
     }
 
     async checkShortlistStatus(userId, listingId) {
-        console.log('Controller.checkShortlistStatus called with:', userId, listingId);
+        console.log('CheckShortlistController.checkShortlistStatus called with:', userId, listingId);
         return await this.entity.checkShortlistStatus(userId, listingId);
+    }
+}
+
+// Controller for retrieving user's shortlist
+class GetUserShortlistController {
+    constructor() {
+        console.log('Initializing GetUserShortlistController');
+        this.entity = new ShortListEntity();
     }
 
     async getUserShortlist(userId) {
-        console.log('Controller.getUserShortlist called for user:', userId);
+        console.log('GetUserShortlistController.getUserShortlist called for user:', userId);
         return await this.entity.getUserShortlist(userId);
     }
 }
 
-class shortList{
+
+// ===================== ENTITY LAYER =====================
+// Single entity class that handles all data operations
+class ShortListEntity {
     constructor() {
-        console.log('Initializing shortList entity');
+        console.log('Initializing ShortListEntity');
         this.apiBaseUrl = 'http://localhost:3000/api';
     }
 
-    async addServiceToShortlist(userId, listingId){
+    async addToShortlist(userId, listingId) {
         try {
-            console.log('Entity.addServiceToShortlist called with:', userId, listingId);
+            console.log('Entity.addToShortlist called with:', userId, listingId);
 
             // Input validation
             if (!userId || !listingId) {

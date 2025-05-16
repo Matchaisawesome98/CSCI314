@@ -1,4 +1,5 @@
-// Home Cleaner Bookings with Boundary-Control-Entity (BCE) architectural pattern
+// HomeCleanerBookings with Boundary-Control-Entity (BCE) architectural pattern
+// Restructured to have separate controllers for each operation type
 
 /**
  * CleanerBookingsUI - Boundary class responsible for UI interactions
@@ -12,8 +13,8 @@ class CleanerBookingsUI {
         this.bookings = [];
         this.selectedStatus = 'all'; // Default to show all bookings
 
-        // Initialize controller
-        this.controller = new CleanerBookingsController();
+        // Initialize controllers
+        this.initControllers();
 
         // Initialize DOM elements and setup event listeners
         this.initDomElements();
@@ -25,6 +26,16 @@ class CleanerBookingsUI {
         } else {
             console.error('No user ID available for booking management');
         }
+    }
+
+    /**
+     * Initialize controller classes
+     */
+    initControllers() {
+        // Create a controller for each operation type
+        this.getBookingsController = new GetProviderBookingsController();
+        this.getDetailsController = new GetBookingDetailsController();
+        this.updateStatusController = new UpdateBookingStatusController();
     }
 
     /**
@@ -87,7 +98,7 @@ class CleanerBookingsUI {
             }
 
             // Get bookings from controller
-            const result = await this.controller.getProviderBookingsController(this.currentUserId);
+            const result = await this.getBookingsController.getProviderBookings(this.currentUserId);
 
             if (result.success) {
                 this.bookings = result.data;
@@ -171,8 +182,8 @@ class CleanerBookingsUI {
         card.classList.add(`status-${booking.status.replace('_', '-')}`);
 
         // Format date and time
-        const bookingDate = this.controller.formatDate(booking.scheduled_date);
-        const bookingTime = this.controller.formatTime(booking.scheduled_time);
+        const bookingDate = this.formatDate(booking.scheduled_date);
+        const bookingTime = this.formatTime(booking.scheduled_time);
 
         // Get status label
         const statusLabel = this.getStatusLabel(booking.status);
@@ -249,7 +260,7 @@ class CleanerBookingsUI {
             this.showLoadingState();
 
             // Update via controller
-            const result = await this.controller.updateBookingStatusController(bookingId, newStatus, this.currentUserId);
+            const result = await this.updateStatusController.updateBookingStatus(bookingId, newStatus, this.currentUserId);
 
             if (result.success) {
                 // Show success message
@@ -285,7 +296,7 @@ class CleanerBookingsUI {
             this.showLoadingState();
 
             // Get booking details
-            const result = await this.controller.getBookingDetailsController(bookingId);
+            const result = await this.getDetailsController.getBookingDetails(bookingId);
 
             if (!result.success) {
                 throw new Error(result.message || 'Failed to load booking details');
@@ -294,8 +305,8 @@ class CleanerBookingsUI {
             const booking = result.data;
 
             // Format date and time
-            const bookingDate = this.controller.formatDate(booking.scheduled_date);
-            const bookingTime = this.controller.formatTime(booking.scheduled_time);
+            const bookingDate = this.formatDate(booking.scheduled_date);
+            const bookingTime = this.formatTime(booking.scheduled_time);
             const statusLabel = this.getStatusLabel(booking.status);
 
             // Update modal content
@@ -420,6 +431,38 @@ class CleanerBookingsUI {
     }
 
     /**
+     * Format date for display (moved from controller)
+     */
+    formatDate(dateString) {
+        if (!dateString) return 'N/A';
+
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const date = new Date(dateString);
+
+        return date.toLocaleDateString('en-US', options);
+    }
+
+    /**
+     * Format time for display (moved from controller)
+     */
+    formatTime(timeString) {
+        if (!timeString) return 'N/A';
+
+        // Convert 24h time (HH:MM:SS) to 12h format with AM/PM
+        const timeParts = timeString.split(':');
+        if (timeParts.length < 2) return timeString;
+
+        let hours = parseInt(timeParts[0]);
+        const minutes = timeParts[1];
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+
+        hours = hours % 12;
+        hours = hours ? hours : 12; // Convert 0 to 12
+
+        return `${hours}:${minutes} ${ampm}`;
+    }
+
+    /**
      * Show a notification message
      */
     showNotification(message, type = 'info') {
@@ -495,11 +538,13 @@ class CleanerBookingsUI {
     }
 }
 
+// ===================== CONTROLLER LAYER =====================
+// Individual controller classes for different operations
+
 /**
- * CleanerBookingsController - Controller class handling business logic
- * Mediates between UI and entity layer
+ * GetProviderBookingsController - Controller for fetching provider bookings
  */
-class CleanerBookingsController {
+class GetProviderBookingsController {
     constructor() {
         this.entity = new CleanerBookingsEntity();
     }
@@ -507,7 +552,7 @@ class CleanerBookingsController {
     /**
      * Get bookings for the current provider
      */
-    async getProviderBookingsController(providerId) {
+    async getProviderBookings(providerId) {
         try {
             if (!providerId) {
                 return { success: false, error: 'Missing provider ID' };
@@ -519,11 +564,20 @@ class CleanerBookingsController {
             return { success: false, error: error.message };
         }
     }
+}
+
+/**
+ * GetBookingDetailsController - Controller for fetching booking details
+ */
+class GetBookingDetailsController {
+    constructor() {
+        this.entity = new CleanerBookingsEntity();
+    }
 
     /**
      * Get details for a specific booking
      */
-    async getBookingDetailsController(bookingId) {
+    async getBookingDetails(bookingId) {
         try {
             if (!bookingId) {
                 return { success: false, error: 'Missing booking ID' };
@@ -535,11 +589,20 @@ class CleanerBookingsController {
             return { success: false, error: error.message };
         }
     }
+}
+
+/**
+ * UpdateBookingStatusController - Controller for updating booking status
+ */
+class UpdateBookingStatusController {
+    constructor() {
+        this.entity = new CleanerBookingsEntity();
+    }
 
     /**
      * Update a booking's status
      */
-    async updateBookingStatusController(bookingId, status, providerId) {
+    async updateBookingStatus(bookingId, status, providerId) {
         try {
             // Validate inputs
             if (!bookingId || !status) {
@@ -558,38 +621,6 @@ class CleanerBookingsController {
             console.error('Controller: Error updating booking status:', error);
             return { success: false, error: error.message };
         }
-    }
-
-    /**
-     * Format date for display
-     */
-    formatDate(dateString) {
-        if (!dateString) return 'N/A';
-
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const date = new Date(dateString);
-
-        return date.toLocaleDateString('en-US', options);
-    }
-
-    /**
-     * Format time for display
-     */
-    formatTime(timeString) {
-        if (!timeString) return 'N/A';
-
-        // Convert 24h time (HH:MM:SS) to 12h format with AM/PM
-        const timeParts = timeString.split(':');
-        if (timeParts.length < 2) return timeString;
-
-        let hours = parseInt(timeParts[0]);
-        const minutes = timeParts[1];
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-
-        hours = hours % 12;
-        hours = hours ? hours : 12; // Convert 0 to 12
-
-        return `${hours}:${minutes} ${ampm}`;
     }
 }
 
@@ -669,6 +700,5 @@ class CleanerBookingsEntity {
     }
 }
 
-// This will initialize the CleanerBookingsUI when the DOM is loaded
+// Initialize the CleanerBookingsUI when the DOM is loaded
 // The static initializer in the CleanerBookingsUI class takes care of this
-

@@ -12,8 +12,10 @@ class HomeOwnerBookingListUI {
         this.bookings = [];
         this.selectedStatus = 'all'; // Default to show all bookings
 
-        // Initialize controller
-        this.controller = new HomeOwnerBookingListController();
+        // Initialize controllers
+        this.getUserBookingsController = new GetUserBookingsController();
+        this.getBookingDetailsController = new GetBookingDetailsController();
+        this.updateBookingStatusController = new UpdateBookingStatusController();
 
         // Initialize DOM elements and setup event listeners
         this.initDomElements();
@@ -94,7 +96,7 @@ class HomeOwnerBookingListUI {
             }
 
             // Get bookings from controller
-            const result = await this.controller.getUserBookingsController(this.currentUserId);
+            const result = await this.getUserBookingsController.getUserBookings(this.currentUserId);
 
             if (result.success) {
                 this.bookings = result.data;
@@ -187,8 +189,8 @@ class HomeOwnerBookingListUI {
         }
 
         // Format date and time
-        const bookingDate = this.controller.formatDate(booking.scheduled_date);
-        const bookingTime = this.controller.formatTime(booking.scheduled_time);
+        const bookingDate = this.formatDate(booking.scheduled_date);
+        const bookingTime = this.formatTime(booking.scheduled_time);
 
         // Get status badge
         const statusBadge = `<span class="status-badge status-${booking.status.replace('_', '-')}">${this.formatStatus(booking.status)}</span>`;
@@ -210,18 +212,18 @@ class HomeOwnerBookingListUI {
      * Get appropriate booking action buttons based on status
      */
     getBookingActions(booking) {
-    const bookingId = booking.booking_id;
-    let actions = `<div class="booking-actions">
-        <button class="btn view-booking-btn" data-booking-id="${bookingId}">View Details</button>`;
+        const bookingId = booking.booking_id;
+        let actions = `<div class="booking-actions">
+            <button class="btn view-booking-btn" data-booking-id="${bookingId}">View Details</button>`;
 
-    // Only add cancel button if booking is not already completed or cancelled
-    if (booking.status !== 'completed' && booking.status !== 'cancelled') {
-        actions += `<button class="btn btn-danger cancel-booking-btn" data-booking-id="${bookingId}">Cancel</button>`;
+        // Only add cancel button if booking is not already completed or cancelled
+        if (booking.status !== 'completed' && booking.status !== 'cancelled') {
+            actions += `<button class="btn btn-danger cancel-booking-btn" data-booking-id="${bookingId}">Cancel</button>`;
+        }
+
+        actions += `</div>`;
+        return actions;
     }
-
-    actions += `</div>`;
-    return actions;
-}
 
     /**
      * Format status for display
@@ -275,7 +277,7 @@ class HomeOwnerBookingListUI {
             this.showLoadingState();
 
             // Use controller to cancel booking
-            const result = await this.controller.updateBookingStatusController(
+            const result = await this.updateBookingStatusController.updateBookingStatus(
                 this.pendingBookingId,
                 'cancelled',
                 this.currentUserId
@@ -316,7 +318,7 @@ class HomeOwnerBookingListUI {
             this.showLoadingState();
 
             // Get booking details
-            const result = await this.controller.getBookingDetailsController(bookingId);
+            const result = await this.getBookingDetailsController.getBookingDetails(bookingId);
 
             if (!result.success) {
                 throw new Error(result.message || 'Failed to load booking details');
@@ -325,8 +327,8 @@ class HomeOwnerBookingListUI {
             const booking = result.data;
 
             // Format date and time
-            const bookingDate = this.controller.formatDate(booking.scheduled_date);
-            const bookingTime = this.controller.formatTime(booking.scheduled_time);
+            const bookingDate = this.formatDate(booking.scheduled_date);
+            const bookingTime = this.formatTime(booking.scheduled_time);
 
             // Update modal content
             if (this.bookingDetailsModal) {
@@ -506,81 +508,6 @@ class HomeOwnerBookingListUI {
         }
     }
 
-    // Static initializer to create instance when document is loaded
-    static {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => new HomeOwnerBookingListUI());
-        } else {
-            // DOM is already loaded
-            new HomeOwnerBookingListUI();
-        }
-    }
-}
-
-/**
- * HomeOwnerBookingListController - Controller class handling business logic
- * Mediates between UI and entity layer
- */
-class HomeOwnerBookingListController {
-    constructor() {
-        this.entity = new HomeOwnerBookingListEntity();
-    }
-
-    /**
-     * Get bookings for the current user
-     */
-    async getUserBookingsController(userId) {
-        try {
-            if (!userId) {
-                return { success: false, error: 'Missing user ID' };
-            }
-
-            return await this.entity.getUserBookings(userId);
-        } catch (error) {
-            console.error('Controller: Error getting user bookings:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    /**
-     * Get details for a specific booking
-     */
-    async getBookingDetailsController(bookingId) {
-        try {
-            if (!bookingId) {
-                return { success: false, error: 'Missing booking ID' };
-            }
-
-            return await this.entity.getBookingDetails(bookingId);
-        } catch (error) {
-            console.error('Controller: Error getting booking details:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    /**
-     * Update a booking's status (cancel)
-     */
-    async updateBookingStatusController(bookingId, status, userId) {
-        try {
-            // Validate inputs
-            if (!bookingId || !status) {
-                return { success: false, error: 'Missing booking ID or status' };
-            }
-
-            // For home owners, only cancellation is allowed
-            if (status !== 'cancelled') {
-                return { success: false, error: 'Home owners can only cancel bookings' };
-            }
-
-            // Call entity to update status
-            return await this.entity.updateBookingStatus(bookingId, status, userId);
-        } catch (error) {
-            console.error('Controller: Error updating booking status:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
     /**
      * Format date for display
      */
@@ -612,14 +539,108 @@ class HomeOwnerBookingListController {
 
         return `${hours}:${minutes} ${ampm}`;
     }
+
+    // Static initializer to create instance when document is loaded
+    static {
+        console.log('HomeOwnerBookingListUI static initializer running');
+        let isInitialized = false;
+
+        const initializeUI = () => {
+            if (isInitialized) return;
+            isInitialized = true;
+
+            // Wrapped in setTimeout to ensure DOM is completely ready
+            setTimeout(() => {
+                console.log('Creating new HomeOwnerBookingListUI instance');
+                new HomeOwnerBookingListUI();
+            }, 0);
+        };
+
+        // Handle various page load scenarios
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeUI);
+        } else {
+            // DOM is already loaded
+            initializeUI();
+        }
+
+        // Also initialize when cards are rendered
+        window.addEventListener('load', () => {
+            console.log('Window load event, ensuring HomeOwnerBookingListUI is initialized');
+            initializeUI();
+        });
+    }
 }
 
-/**
- * HomeOwnerBookingListEntity - Entity class for data access
- * Handles API calls and data storage
- */
-class HomeOwnerBookingListEntity {
+
+// ===================== CONTROLLER LAYER =====================
+// Each controller handles specific operations and business logic
+
+// Controller for getting user bookings
+class GetUserBookingsController {
     constructor() {
+        console.log('Initializing GetUserBookingsController');
+        this.entity = new BookingListEntity();
+    }
+
+    async getUserBookings(userId) {
+        console.log('GetUserBookingsController.getUserBookings called with:', userId);
+        if (!userId) {
+            return { success: false, error: 'Missing user ID' };
+        }
+
+        return await this.entity.getUserBookings(userId);
+    }
+}
+
+// Controller for getting booking details
+class GetBookingDetailsController {
+    constructor() {
+        console.log('Initializing GetBookingDetailsController');
+        this.entity = new BookingListEntity();
+    }
+
+    async getBookingDetails(bookingId) {
+        console.log('GetBookingDetailsController.getBookingDetails called with:', bookingId);
+        if (!bookingId) {
+            return { success: false, error: 'Missing booking ID' };
+        }
+
+        return await this.entity.getBookingDetails(bookingId);
+    }
+}
+
+// Controller for updating booking status
+class UpdateBookingStatusController {
+    constructor() {
+        console.log('Initializing UpdateBookingStatusController');
+        this.entity = new BookingListEntity();
+    }
+
+    async updateBookingStatus(bookingId, status, userId) {
+        console.log('UpdateBookingStatusController.updateBookingStatus called with:', bookingId, status, userId);
+
+        // Validate inputs
+        if (!bookingId || !status) {
+            return { success: false, error: 'Missing booking ID or status' };
+        }
+
+        // For home owners, only cancellation is allowed
+        if (status !== 'cancelled') {
+            return { success: false, error: 'Home owners can only cancel bookings' };
+        }
+
+        // Call entity to update status
+        return await this.entity.updateBookingStatus(bookingId, status, userId);
+    }
+}
+
+
+// ===================== ENTITY LAYER =====================
+// Single entity class that handles all data operations
+class BookingListEntity {
+    constructor() {
+        console.log('Initializing BookingListEntity');
         this.apiBaseUrl = 'http://localhost:3000/api';
     }
 
@@ -689,8 +710,3 @@ class HomeOwnerBookingListEntity {
         }
     }
 }
-
-// This will initialize the HomeOwnerBookingListUI when the DOM is loaded
-// The static initializer in the HomeOwnerBookingListUI class takes care of this
-
-
