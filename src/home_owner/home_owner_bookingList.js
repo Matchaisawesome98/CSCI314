@@ -62,13 +62,19 @@ class HomeOwnerBookingListUI {
         }
 
         if (this.modalConfirm) {
-            this.modalConfirm.addEventListener('click', () => this.confirmStatusChange());
+            this.modalConfirm.addEventListener('click', (event) => {
+                const bookingId = event.target.getAttribute('data-booking-id');
+                console.log('Confirm clicked with booking ID:', bookingId);
+                this.confirmStatusChange(bookingId); // Pass the ID directly to the method
+            });
         }
 
         // Document-level event delegation for booking actions
         document.addEventListener('click', (event) => {
             // Cancel booking button
             if (event.target.classList.contains('cancel-booking-btn')) {
+                console.log('Cancel button clicked!');
+                console.log('Booking ID:', event.target.getAttribute('data-booking-id'));
                 const bookingId = event.target.getAttribute('data-booking-id');
                 this.showCancellationConfirmation(bookingId);
             }
@@ -241,7 +247,12 @@ class HomeOwnerBookingListUI {
      * Show cancellation confirmation modal
      */
     showCancellationConfirmation(bookingId) {
-        this.pendingBookingId = bookingId;
+        console.log('Attempting to cancel booking with ID:', bookingId);
+
+        // Add the booking ID directly to the confirm button
+        if (this.modalConfirm) {
+            this.modalConfirm.setAttribute('data-booking-id', bookingId);
+        }
 
         if (this.modalMessage) {
             this.modalMessage.textContent = 'Are you sure you want to cancel this booking?';
@@ -265,8 +276,14 @@ class HomeOwnerBookingListUI {
     /**
      * Confirm status change (cancellation)
      */
-    async confirmStatusChange() {
-        if (!this.pendingBookingId) return;
+    async confirmStatusChange(bookingId) {
+        const idToUse = bookingId || this.pendingBookingId;
+        console.log('confirmStatusChange called with ID:', idToUse);
+
+        if (!idToUse) {
+            console.error('No booking ID available for cancellation!');
+            return;
+        }
 
         try {
             // Close the modal first
@@ -275,9 +292,9 @@ class HomeOwnerBookingListUI {
             // Show loading state
             this.showLoadingState();
 
-            // Use controller to cancel booking
+            // Use controller to cancel booking with the passed ID
             const result = await this.updateBookingStatusController.updateBookingStatus(
-                this.pendingBookingId,
+                idToUse,
                 'cancelled',
                 this.currentUserId
             );
@@ -286,18 +303,16 @@ class HomeOwnerBookingListUI {
                 // Show success message
                 this.showNotification('Booking successfully cancelled!', 'success');
 
-                // Update local data
+                // REFRESH APPROACH 1: Update local data and refresh display
                 this.bookings = this.bookings.map(booking => {
-                    if (booking.booking_id.toString() === this.pendingBookingId.toString()) {
+                    if (booking.booking_id.toString() === idToUse.toString()) {
                         return { ...booking, status: 'cancelled' };
                     }
                     return booking;
                 });
 
-                // Refresh display
+                // Refresh display with updated data
                 this.displayBookings();
-            } else {
-                throw new Error(result.message || 'Failed to cancel booking');
             }
         } catch (error) {
             console.error('Error cancelling booking:', error);

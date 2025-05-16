@@ -3,8 +3,25 @@
  * Handles all DOM interactions and UI updates
  */
 class BookingUI {
+    // Static boundary initialization - automatically runs when script is loaded
+    static {
+        console.log('BookingUI static boundary initialization starting');
+
+        // Wait for DOM to be ready before creating instance
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                new BookingUI();
+            });
+        } else {
+            // DOM already loaded, initialize immediately
+            new BookingUI();
+        }
+
+        console.log('BookingUI static boundary initialization complete');
+    }
     constructor() {
         console.log('Initializing BookingUI');
+
 
         // Initialize instance variables
         this.serviceId = null;
@@ -17,7 +34,7 @@ class BookingUI {
         this.bookedSlots = {};
 
         // Initialize controllers
-        this.serviceDetailsController = new ServiceDetailsController();
+        this.serviceDetailsController = new BookingServiceDetailsController();
         this.bookedSlotsController = new BookedSlotsController();
         this.createBookingController = new CreateBookingController();
 
@@ -39,6 +56,8 @@ class BookingUI {
 
         // Initialize booking system
         this.initBookingSystem();
+
+        console.log('BookingUI initialization complete');
     }
 
     /**
@@ -57,6 +76,10 @@ class BookingUI {
         this.timeSlotsContainer = document.getElementById('time-slots');
         this.summaryContainer = document.getElementById('booking-summary');
         this.currentMonthElement = document.getElementById('current-month');
+
+        // Log element status for debugging
+        console.log('Book Button found:', !!this.bookBtn);
+        console.log('Modal found:', !!this.modal);
     }
 
     /**
@@ -65,7 +88,14 @@ class BookingUI {
     setupEventListeners() {
         console.log('Setting up event listeners');
         if (this.bookBtn) {
-            this.bookBtn.addEventListener('click', () => this.showBookingModal());
+            console.log('Adding click listener to book button');
+            this.bookBtn.addEventListener('click', (e) => {
+                console.log('Book button clicked');
+                e.preventDefault();
+                this.showBookingModal();
+            });
+        } else {
+            console.error('Book button element not found!');
         }
 
         if (this.closeModalBtn) {
@@ -104,7 +134,7 @@ class BookingUI {
             this.fetchServiceDetails();
         }
 
-        console.log("Booking system initialized");
+        console.log("Booking system initialized with serviceId:", this.serviceId);
     }
 
     /**
@@ -166,20 +196,20 @@ class BookingUI {
      */
     showBookingModal() {
         // First make sure we have the necessary data
-        if (!this.serviceId || !this.providerId) {
-            console.error('Missing service or provider ID for booking');
+        if (!this.serviceId) {
+            console.error('Missing service ID for booking');
             alert('Unable to book right now. Please try again later.');
             return;
         }
 
-        console.log("Showing booking modal");
+        console.log("Showing booking modal. ServiceId:", this.serviceId, "ProviderId:", this.providerId);
 
         // Show the modal - with improved error handling
         if (this.modal) {
             console.log("Modal element found, setting display to block");
 
             // Force display to block and ensure it's visible
-            this.modal.setAttribute('style', 'display: block !important');
+            this.modal.style.display = 'block';
 
             // For debugging
             setTimeout(() => {
@@ -576,47 +606,17 @@ class BookingUI {
         const results = regex.exec(location.search);
         return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
     }
-
-    // Static initializer to create instance when document is loaded
-    static {
-        console.log('BookingUI static initializer running');
-        let isInitialized = false;
-
-        const initializeUI = () => {
-            if (isInitialized) return;
-            isInitialized = true;
-
-            // Wrapped in setTimeout to ensure DOM is completely ready
-            setTimeout(() => {
-                console.log('Creating new BookingUI instance');
-                new BookingUI();
-            }, 0);
-        };
-
-        // Handle various page load scenarios
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeUI);
-        } else {
-            initializeUI();
-        }
-
-        // Also initialize when window is fully loaded
-        window.addEventListener('load', () => {
-            console.log('Window load event, ensuring BookingUI is initialized');
-            initializeUI();
-        });
-    }
 }
 
 // ===================== CONTROLLER LAYER =====================
 // Each controller handles specific operations and business logic
 
 /**
- * Controller for getting service details
+ * Controller for getting service details specifically for booking
  */
-class ServiceDetailsController {
+class BookingServiceDetailsController {
     constructor() {
-        console.log('Initializing ServiceDetailsController');
+        console.log('Initializing BookingServiceDetailsController');
         this.entity = new BookingEntity();
     }
 
@@ -838,3 +838,5 @@ class BookingEntity {
         }
     }
 }
+
+console.log('home_owner_booking.js loaded, creating BookingUI instance');
