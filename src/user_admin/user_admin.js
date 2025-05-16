@@ -152,7 +152,7 @@ class UserAdminController {
 
 // UI/BOUNDARY CLASSES
 // Creation Boundary Class - Handles UI interaction for user creation
-class CreationBoundary {
+class Creating_users_as_userAdmin_Boundary {
     constructor(controller) {
         this.controller = controller || new UserAdminController();
         
@@ -351,7 +351,7 @@ class CreationBoundary {
 }
 
 // View UI class - For displaying and managing the user list
-class ViewUI {
+class View_all_users_as_UserAdmin_boundary {
     constructor() {
         this.controller = new UserAdminController();
         this.statusDiv = document.getElementById('status');
@@ -543,7 +543,7 @@ class ViewUI {
 }
 
 // Search UI class - Extends ViewUI to reuse the rendering logic
-class SearchUI extends ViewUI {
+class Search_for_user_as_UserAdmin_boundary extends View_all_users_as_UserAdmin_boundary {
     constructor() {
         super();
         this.searchInput = document.getElementById('searchInput');
@@ -614,7 +614,7 @@ class SearchUI extends ViewUI {
 }
 
 // Edit Boundary class - Handles UI, presentation, validation, and error handling for editing users
-class EditBoundary {
+class Edit_users_as_UserAdmin_Boundary {
     constructor() {
         this.controller = new UserAdminController();
         this.statusDiv = document.getElementById('status');
@@ -623,7 +623,7 @@ class EditBoundary {
         this.userIdField = document.getElementById('userId');
         this.userNameField = document.getElementById('userName');
         this.formFields = document.getElementById('formFields');
-        this.viewUI = new ViewUI(); // Reference to ViewUI for table updates
+        this.View_all_users_as_UserAdmin_boundary = new View_all_users_as_UserAdmin_boundary(); // Reference to ViewUI for table updates
         
         // If the elements exist, set up event listeners
         if (this.editUserForm) {
@@ -789,7 +789,7 @@ class EditBoundary {
                 this.showSuccess(`<strong>Update Successful</strong> - User "${userName}" was updated.`);
                 
                 // Update the table row with the new data
-                this.viewUI.updateTableRow(userId, formData);
+                this.View_all_users_as_UserAdmin_boundary.updateTableRow(userId, formData);
             } else {
                 this.showError(result.message || "Unknown error occurred");
             }
@@ -817,7 +817,7 @@ function initViewUsers() {
     
     // Initialize the view UI if not already done
     if (!window.viewUI) {
-        window.viewUI = new ViewUI();
+        window.viewUI = new View_all_users_as_UserAdmin_boundary();
     }
     
     // Display all users
@@ -828,7 +828,7 @@ function initViewUsers() {
 function performSearch() {
     // Initialize the search UI if not already done
     if (!window.searchUI) {
-        window.searchUI = new SearchUI();
+        window.searchUI = new Search_for_user_as_UserAdmin_boundary();
     }
     
     // Perform search
@@ -847,7 +847,7 @@ function handleSearchKeyPress(event) {
 // Edit modal functions - updated to use the EditBoundary class
 function openEditModal(userData) {
     if (!window.editBoundary) {
-        window.editBoundary = new EditBoundary();
+        window.editBoundary = new Edit_users_as_UserAdmin_Boundary();
     }
     window.editBoundary.openEditModal(userData);
 }
@@ -871,17 +871,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize the creation boundary if on creation page
     if (document.getElementById('addUserForm')) {
-        window.creationBoundary = new CreationBoundary(controller);
+        window.creationBoundary = new Creating_users_as_userAdmin_Boundary(controller);
     }
     
     // Initialize view UI
-    window.viewUI = new ViewUI();
+    window.viewUI = new View_all_users_as_UserAdmin_boundary();
     
     // Initialize search UI
-    window.searchUI = new SearchUI();
+    window.searchUI = new Search_for_user_as_UserAdmin_boundary();
     
     // Initialize edit boundary
-    window.editBoundary = new EditBoundary();
+    window.editBoundary = new Edit_users_as_UserAdmin_Boundary();
     
     // Hide modal on page load
     const modal = document.getElementById('editModal');
