@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS user_accounts (
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     roles VARCHAR(20) DEFAULT 'home_owner'
-    );
+);
 
 -- create the table of listings
 CREATE TABLE IF NOT EXISTS listings (
@@ -129,12 +129,6 @@ DROP COLUMN category_code;
 ALTER TABLE listings
     ADD COLUMN category_name VARCHAR(50);
 
--- Add a foreign key constraint referencing the categories table's category_name
-ALTER TABLE listings
-    ADD CONSTRAINT fk_category_name
-        FOREIGN KEY (category_name) REFERENCES categories(category_name)
-            ON DELETE SET NULL;
-
 
 CREATE TABLE IF NOT EXISTS categories (
     category_code VARCHAR(20) PRIMARY KEY,
@@ -142,6 +136,13 @@ CREATE TABLE IF NOT EXISTS categories (
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+-- Add a foreign key constraint referencing the categories table's category_name
+ALTER TABLE listings
+    ADD CONSTRAINT fk_category_name
+        FOREIGN KEY (category_name) REFERENCES categories(category_name)
+            ON DELETE SET NULL;
+
 
 INSERT INTO categories (category_code, category_name, description)
 VALUES
