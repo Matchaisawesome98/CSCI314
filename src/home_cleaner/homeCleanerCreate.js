@@ -52,7 +52,7 @@ class createServiceUI {
         };
 
         // Pass data to controller, if succeeds, reload the window, so it can display the new listing as well
-        this.controller.createCleaningServiceController(serviceData)
+        this.controller.createCleaningService(serviceData)
             .then(result => {
                 if (result && result.success) {
                     // Simply reload the page after successful creation
@@ -81,7 +81,7 @@ class createServiceController {
     }
 
     //might have to change the naming
-    async createCleaningServiceController(serviceData){
+    async createCleaningService(serviceData){
         // Validate the service data, makes sure that it is in accordance to the business rules
         //if (!this.validateServiceData(serviceData)) {
         //    return { success: false, error: "Invalid service data" };

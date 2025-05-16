@@ -725,26 +725,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update placeholder
     searchInput.placeholder = "Search listings... (press Enter)";
 });
-// Helper function to initialize or reinitialize shortlist buttons
-function initializeShortlistButtons() {
-    console.log("Initializing shortlist buttons");
-
-    // Check if shortlist UI exists and user is a home owner
-    const userRole = localStorage.getItem('userRole') || 'home_owner';
-    const userId = localStorage.getItem('currentUserId');
-
-    if (typeof shortListUI === 'function' && userRole === 'home_owner' && userId) {
-        // Create a new instance to add buttons
-        console.log("Creating new shortListUI instance");
-        new shortListUI();
-    } else {
-        console.log("Not initializing shortlist - conditions not met:", {
-            classExists: typeof shortListUI === 'function',
-            userRole,
-            userId
-        });
-    }
-}
 
 // Custom load event handler
 document.addEventListener('DOMContentLoaded', function() {

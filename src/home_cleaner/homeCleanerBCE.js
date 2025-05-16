@@ -1,5 +1,5 @@
 
-//create service boundary
+//BOUNDARY
 class createServiceUI {
     constructor() {
         this.initDomElements();
@@ -48,36 +48,34 @@ class createServiceUI {
             price: parseFloat(document.getElementById('service-price').value),
             description: document.getElementById('service-description').value.trim(),
             imageUrl: document.getElementById('service-image').value.trim() || 'https://placehold.co/600x400?text=Cleaning+Service',
-            providerId: this.currentUserId,
-            providerName: this.currentUsername,
+            providerId: localStorage.getItem('currentUserId'),
+            providerName: localStorage.getItem('currentUsername'),
             createdAt: new Date().toISOString()
         };
-        if (serviceId) {
-        console.log('Updating existing service with ID:', serviceId);
-        // If service ID exists, we're updating
-        this.controller.updateServiceController(serviceData)
-            .then(result => {
-                if (result && result.success) {
-                    console.log('Service updated successfully');
-                    // Reload the page after successful update
-                    window.location.reload();
-                } else {
-                    console.error('Failed to update service:', result?.error);
-                    this.displayUpdateFailed();
-                }
-            });
-    }
 
-        // Pass data to controller, if succeeds, reload the window
-        this.controller.createCleaningServiceController(serviceData)
+        // FIXED: Call entity directly
+        this.controller.entity.createCleaningService(serviceData)
             .then(result => {
                 if (result && result.success) {
+                    //show success msg
+                    this.displaySuccess();
                     // Simply reload the page after successful creation
                     window.location.reload();
+                } else {
+                    console.error('Failed to create service:', result?.error);
                 }
+            })
+            .catch(error => {
+                console.error('Error creating service:', error);
             });
+
         // Close the modal
         this.closeForm();
+    }
+
+    //successfully created a listingg
+    displaySuccess() {
+        alert("Service listing created successfully!");
     }
 
     // Checks if a document is ready, then initialize
@@ -90,13 +88,12 @@ class createServiceUI {
         }
     }
 }
-// controller to create service listing
 class createServiceController {
     constructor() {
         this.entity = new service();
     }
-    async createCleaningServiceController(serviceData){
-        // Pass prepared data to entity layer
+
+    createCleaningService(serviceData) {
         return this.entity.createCleaningService(serviceData);
     }
 }
@@ -438,6 +435,8 @@ class readServiceController {
         };
     }
 }
+
+
 
 //Boundary for the updating and deletion of user listingso
 class serviceManagementUI {
