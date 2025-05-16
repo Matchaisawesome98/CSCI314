@@ -107,81 +107,8 @@
                 font-weight: bold;
             }
         </style>
-        <script>
-            function validateForm(){
-                var loginid = document.getElementById('loginid').value;
-                var loginpassword = document.getElementById('loginpassword').value;
 
-                if (loginid.trim() == '' || loginid == null){
-                    document.getElementById('loginiderror').innerHTML = "ID cannot be empty";
-                    return false;
-                }
-                else {
-                    document.getElementById('loginiderror').innerHTML = "";
-                    document.getElementById('loginid').value = loginid.trim();
-                }
 
-                if (loginpassword.trim() == '' || loginpassword == null){
-                    document.getElementById('loginpassworderror').innerHTML = "Password cannot be empty";
-                    return false;
-                }
-                else {
-                    document.getElementById('loginpassworderror').innerHTML = "";
-                    document.getElementById('loginpassword').value = loginpassword.trim();
-                }
-                return true;
-            }
-
-            async function submitForm(event) {
-                event.preventDefault();
-                
-                if (!validateForm()) {
-                    return false;
-                }
-
-                const formData = {
-                    username: document.getElementById('loginid').value,
-                    password: document.getElementById('loginpassword').value
-                };
-
-                try {
-                    const response = await fetch('http://localhost:3000/api/authenticate', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(formData)
-                    });
-
-                    const data = await response.json();
-                    
-                    const statusDiv = document.getElementById('loginStatus');
-                    
-                    if (data.success && data.authenticated) {
-                        statusDiv.className = 'success-message';
-                        statusDiv.textContent = 'Login successful! Redirecting...';
-                        
-                        // Store user role in session storage
-                        sessionStorage.setItem('userRole', data.userRole);
-                        
-                        // Redirect based on role
-                        setTimeout(() => {
-                            // You can customize this to redirect to different pages based on role
-                            window.location.href = 'testDatabase.html';
-                        }, 1000);
-                    } else {
-                        statusDiv.className = 'error-message';
-                        statusDiv.textContent = 'Invalid username or password. Please try again.';
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    document.getElementById('loginStatus').className = 'error-message';
-                    document.getElementById('loginStatus').textContent = 'An error occurred. Please try again later.';
-                }
-                
-                return false;
-            }
-        </script>
     </head>
     <body>
         <div class="login-container">
@@ -201,7 +128,7 @@
                 <div id="loginpassworderror"></div>
                 
                 <div class="buttons-container">
-                    <a href="registerpage.html" class="register-button">Register</a>
+                    <a href="../../public/registerpage.html" class="register-button">Register</a>
                     <input type="submit" value="Login">
                 </div>
                 
@@ -209,4 +136,5 @@
             </form>
         </div>
     </body>
+<script src="../index.js"></script>
 </html>

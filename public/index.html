@@ -4,8 +4,90 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simple Login Form</title>
-    <link rel="stylesheet" href="../src/style.css">
-    <script src="../src/index.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f2f5;
+        }
+
+        .login-container {
+            background-color: #ffffff;
+            padding: 30px;
+            width: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: normal;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .buttons-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .register-button {
+            background-color: #e9ecef;
+            color: #333;
+            text-decoration: none;
+            border: none;
+            display: inline-block;
+            font-size: 14px;
+            text-align: center;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button[type="submit"] {
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: normal;
+            cursor: pointer;
+            padding: 12px 30px;
+        }
+
+        #message {
+            padding: 10px;
+            margin-top: 15px;
+            text-align: center;
+            border-radius: 4px;
+        }
+    </style>
+
 </head>
 <body>
 <div class="login-container">
@@ -19,12 +101,13 @@
             <label for="password">Password</label>
             <input type="password" id="password" name="password" required>
         </div>
-        <button type="submit">Login</button>
+        <div class="buttons-container">
+            <a href="registerpage.html" class="register-button">Register</a>
+            <button type="submit">Login</button>
+        </div>
     </form>
-    <div id="message" style="margin-top: 10px; text-align: center;"></div>
-    <div class="forgot-password">
-        <a href="#">Forgot Password?</a>
-    </div>
+    <div id="message"></div>
 </div>
 </body>
+<script src="../src/index.js"></script>
 </html>

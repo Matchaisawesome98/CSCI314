@@ -15,9 +15,18 @@ class shortListUI {
         this.userRole = localStorage.getItem('userRole') || 'home_owner';
         this.shortlistCache = new Map(); // Cache for shortlist status
 
-        // Only proceed if we have a user ID and they're a home owner
-        if (this.userId && this.userRole === 'home_owner') {
-            // Pre-load user's shortlist to populate cache for faster button rendering
+        // Determine what page we're on
+        this.isShortlistPage = window.location.pathname.includes('home_owner_shortlists.html');
+
+        // Initialize appropriate functionality based on page
+        if (this.isShortlistPage) {
+            console.log('On shortlist page, initializing shortlist view');
+            this.initShortlistPageElements();
+            this.setupShortlistPageListeners();
+            this.viewShortlistedServices();
+        } else if (this.userId && this.userRole === 'home_owner') {
+            // On other pages with service cards, add shortlist buttons
+            console.log('On regular page, initializing shortlist buttons');
             this.preloadUserShortlist().then(() => {
                 this.initDomElements();
                 this.setupEventListeners();
@@ -312,9 +321,11 @@ class shortListUI {
                 console.log('Using cached shortlist status for:', cacheKey);
                 button.disabled = false;
                 if (this.shortlistCache.get(cacheKey)) {
+                    // Item is shortlisted - update both icon and text
                     button.innerHTML = '❤️ Shortlisted';
                     button.classList.add('shortlisted');
                 } else {
+                    // Item is not shortlisted - update both icon and text
                     button.innerHTML = '🤍 Shortlist';
                     button.classList.remove('shortlisted');
                 }
@@ -329,12 +340,12 @@ class shortListUI {
             button.disabled = false;
 
             if (checkResult.success && checkResult.isShortlisted) {
-                // Item is already shortlisted
+                // Item is already shortlisted - update both icon and text
                 button.innerHTML = '❤️ Shortlisted';
                 button.classList.add('shortlisted');
                 this.shortlistCache.set(cacheKey, true);
             } else {
-                // Item is not shortlisted
+                // Item is not shortlisted - update both icon and text
                 button.innerHTML = '🤍 Shortlist';
                 button.classList.remove('shortlisted');
                 this.shortlistCache.set(cacheKey, false);
@@ -360,8 +371,14 @@ class shortListUI {
 
             // Validate inputs
             if (!listingId) {
-                this.showToast('Missing listing ID', 'error');
-                return;
+                // Try to get the ID from the button itself as a fallback
+                listingId = buttonElement.getAttribute('data-id');
+
+                // If still no ID, show error and return
+                if (!listingId) {
+                    this.showToast('Missing listing ID. Please try again later.', 'error');
+                    return;
+                }
             }
 
             // Check if already shortlisted (from button state)
@@ -438,6 +455,256 @@ class shortListUI {
         }
     }
 
+    updateButtonState(button, isShortlisted) {
+        if (isShortlisted) {
+            // Check if we're on the details page or cards page
+            const isDetailsPage = window.location.href.includes('viewDetails.html');
+
+            if (isDetailsPage) {
+                // On details page, use "Unshortlist" text
+                button.innerHTML = '<span class="shortlist-icon">❤️</span> Unshortlist';
+            } else {
+                // On cards/homepage, use "Shortlisted" text
+                button.innerHTML = '❤️ Shortlisted';
+            }
+            button.classList.add('shortlisted');
+        } else {
+            // Not shortlisted - same for both pages
+            button.innerHTML = window.location.href.includes('viewDetails.html') ?
+                '<span class="shortlist-icon">🤍</span> Shortlist' :
+                '🤍 Shortlist';
+            button.classList.remove('shortlisted');
+        }
+    }
+
+    // ---------- SHORTLIST PAGE SPECIFIC METHODS ----------
+
+    initShortlistPageElements() {
+        this.servicesContainer = document.getElementById('services-container');
+        this.emptyState = document.getElementById('empty-state');
+        this.searchInput = document.getElementById('search-input');
+
+        // Initialize user display
+        this.initUserDisplay();
+    }
+
+    initUserDisplay() {
+        const username = localStorage.getItem('currentUsername') || 'Guest';
+        const userInitial = username.charAt(0).toUpperCase();
+
+        const usernameDisplay = document.getElementById('username-display');
+        const userAvatar = document.getElementById('user-avatar');
+
+        if (usernameDisplay) usernameDisplay.textContent = username;
+        if (userAvatar) userAvatar.textContent = userInitial;
+    }
+
+    setupShortlistPageListeners() {
+        // Search input for the shortlist page
+        if (this.searchInput) {
+            this.searchInput.addEventListener('input', () => this.filterShortlistedServices());
+        }
+
+        // Event delegation for remove buttons
+        document.addEventListener('click', (event) => {
+            if (event.target.classList.contains('view-btn')) {
+                const card = event.target.closest('.service-card');
+                const serviceId = card?.dataset.id;
+                if (serviceId) window.location.href = `../viewDetails.html?id=${serviceId}`;
+            }
+        });
+    }
+
+    async viewShortlistedServices() {
+        if (!this.userId) {
+            this.showEmptyState("Please log in to view your shortlisted services");
+            return;
+        }
+
+        try {
+            // Show loading state
+            this.servicesContainer.innerHTML = '<p style="text-align:center;padding:20px;">Loading your shortlisted services...</p>';
+
+            // Get shortlisted items for the user
+            const shortlistResult = await this.getUserController.getUserShortlist(this.userId);
+
+            if (!shortlistResult.success || !shortlistResult.data || shortlistResult.data.length === 0) {
+                this.showEmptyState();
+                return;
+            }
+
+            // Get all service listings
+            const serviceEntity = new service();
+            const servicesResult = await serviceEntity.readCleaningService();
+
+            if (!servicesResult.success) {
+                this.servicesContainer.innerHTML = '<p style="text-align:center;padding:20px;">Failed to load services. Please try again later.</p>';
+                return;
+            }
+
+            // Match shortlisted IDs with full service data
+            const shortlistedIds = shortlistResult.data.map(item => item.listing_id);
+            const shortlistedServices = servicesResult.data.filter(service => {
+                // Check various ID formats that might be used
+                return shortlistedIds.includes(service.listing_id) ||
+                       shortlistedIds.includes(service.id) ||
+                       (service._id && shortlistedIds.includes(service._id.toString()));
+            });
+
+            console.log(`Found ${shortlistedServices.length} shortlisted services`);
+
+            // Render the services
+            this.renderShortlistedServices(shortlistedServices);
+        } catch (error) {
+            console.error('Error loading shortlisted services:', error);
+            this.servicesContainer.innerHTML = '<p style="text-align:center;padding:20px;">An error occurred while loading your shortlisted services.</p>';
+        }
+    }
+
+    renderShortlistedServices(services) {
+        // Clear the container
+        this.servicesContainer.innerHTML = '';
+
+        // Check if we have any services to display
+        if (!services || services.length === 0) {
+            this.showEmptyState();
+            return;
+        }
+
+        // Hide empty state if we have services
+        this.emptyState.style.display = 'none';
+
+        // Add grid class to the container
+        this.servicesContainer.classList.add('services-grid');
+
+        // Get the template
+        const template = document.getElementById('service-card-template');
+        if (!template) {
+            console.error('Service card template not found');
+            return;
+        }
+
+        // Create a controller to prepare service data
+        const controller = new readServiceController();
+
+        // Render each service
+        services.forEach(service => {
+            try {
+                // Clone the template
+                const card = document.importNode(template.content, true).querySelector('.service-card');
+
+                // Prepare the service data
+                const processedService = controller.prepareServiceForDisplay(service);
+
+                // Set data attributes
+                card.setAttribute('data-id', processedService.id);
+                card.setAttribute('data-category', processedService.filterCategory);
+
+                // Set content
+                card.querySelector('.service-image').src = processedService.imageUrl;
+                card.querySelector('.service-image').alt = processedService.title;
+                card.querySelector('.service-title').textContent = processedService.title;
+                card.querySelector('.service-price').textContent = processedService.formattedPrice;
+                card.querySelector('.service-description').textContent = processedService.description;
+                card.querySelector('.tag').textContent = processedService.category;
+
+                // Set provider name if the element exists
+                const providerElement = card.querySelector('.provider-name');
+                if (providerElement) {
+                    providerElement.textContent = processedService.providerName;
+                }
+
+                // Set up buttons
+                const viewBtn = card.querySelector('.view-btn');
+                if (viewBtn) {
+                    viewBtn.dataset.id = processedService.id;
+                }
+
+                const removeBtn = card.querySelector('.remove-btn');
+                if (removeBtn) {
+                    removeBtn.dataset.id = processedService.id;
+                }
+
+                // Add the card to the container
+                this.servicesContainer.appendChild(card);
+            } catch (error) {
+                console.error('Error rendering service card:', error);
+            }
+        });
+    }
+
+    filterShortlistedServices() {
+        const query = this.searchInput.value.trim().toLowerCase();
+        const cards = this.servicesContainer.querySelectorAll('.service-card');
+        let hasVisibleCards = false;
+
+        cards.forEach(card => {
+            const title = card.querySelector('.service-title')?.textContent.toLowerCase() || '';
+            const description = card.querySelector('.service-description')?.textContent.toLowerCase() || '';
+            const category = card.querySelector('.tag')?.textContent.toLowerCase() || '';
+            const provider = card.querySelector('.provider-name')?.textContent.toLowerCase() || '';
+
+            if (title.includes(query) || description.includes(query) ||
+                category.includes(query) || provider.includes(query)) {
+                card.style.display = '';
+                hasVisibleCards = true;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Show empty state if no matching cards
+        if (!hasVisibleCards && cards.length > 0) {
+            // Check if we already have a no-results message
+            let noResults = this.servicesContainer.querySelector('.no-results');
+            if (!noResults) {
+                noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                noResults.style.gridColumn = '1 / -1';
+                noResults.style.padding = '20px';
+                noResults.style.backgroundColor = 'white';
+                noResults.style.borderRadius = '8px';
+                noResults.style.textAlign = 'center';
+                noResults.style.marginTop = '20px';
+
+                noResults.innerHTML = `
+                    <p>No services match your search for "<strong>${query}</strong>"</p>
+                    <button class="btn" style="margin-top:10px;">Clear Search</button>
+                `;
+
+                // Add clear button functionality
+                noResults.querySelector('button').addEventListener('click', () => {
+                    this.searchInput.value = '';
+                    this.filterShortlistedServices();
+                });
+
+                this.servicesContainer.appendChild(noResults);
+            }
+        } else {
+            // Remove any existing no-results message
+            const noResults = this.servicesContainer.querySelector('.no-results');
+            if (noResults) {
+                noResults.remove();
+            }
+        }
+    }
+
+    showEmptyState(message) {
+        // Clear services container
+        this.servicesContainer.innerHTML = '';
+        this.servicesContainer.classList.remove('services-grid');
+
+        // Show empty state
+        this.emptyState.style.display = 'block';
+
+        // Update message if provided
+        if (message) {
+            const messageElement = this.emptyState.querySelector('h3');
+            if (messageElement) {
+                messageElement.textContent = message;
+            }
+        }
+    }
     // Show toast notification
     showToast(message, type = 'info') {
         // Check if toast container exists, create if not

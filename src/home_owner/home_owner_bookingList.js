@@ -1,5 +1,4 @@
-// Home Owner Booking List with Boundary-Control-Entity (BCE) architectural pattern
-
+//BOUNDARY
 /**
  * HomeOwnerBookingListUI - Boundary class responsible for UI interactions
  * Handles all DOM interactions and UI updates for booking management

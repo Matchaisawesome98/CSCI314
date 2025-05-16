@@ -32,37 +32,81 @@ const pool = mysql.createPool({
 });
 
 // Authentication endpoint
-app.post('/api/authenticate', (req, res) => {
-    const { username, password } = req.body;
+app.post('/api/authenticate', async (req, res) => {
+    try {
+        const { username, password } = req.body;
 
-    // IMPORTANT: In production, use parameterized queries to prevent SQL injection
-    // Also, passwords should be hashed, not stored in plain text
-    const query = 'SELECT * FROM user_accounts WHERE user_id = ? AND password = ?';
-
-    pool.query(query, [username, password], (error, results) => {
-        if (error) {
-            console.error('Database error:', error);
-            res.status(500).json({
+        // Basic validation
+        if (!username || !password) {
+            return res.status(400).json({
                 success: false,
-                error: 'Internal server error'
+                message: 'Username and password are required'
             });
-            return;
         }
 
-        if (results.length > 0) {
-            const userRole = results[0].roles || 'home_owner';
-            res.json({
-                success: true,
-                authenticated: true,
-                userRole: userRole
-            });
-        } else {
-            res.json({
-                success: true,
-                authenticated: false
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // MODIFIED: Instead of checking if ANY user is logged in,
+        // we only check if THIS specific user is already logged in elsewhere
+        const [activeUserCheck] = await connection.execute(
+            'SELECT user_id FROM user_accounts WHERE user_id = ? AND login_status = TRUE',
+            [username]
+        );
+
+        // If this user is already logged in somewhere else
+        if (activeUserCheck.length > 0) {
+            await connection.end();
+            return res.status(403).json({
+                success: false,
+                message: 'You are already logged in on another device or browser. Please log out first.',
+                activeUser: username
             });
         }
-    });
+
+        // Check if user exists and password matches
+        const [results] = await connection.execute(
+            'SELECT * FROM user_accounts WHERE user_id = ? AND password = ?',
+            [username, password]
+        );
+
+        if (results.length === 0) {
+            await connection.end();
+            return res.json({
+                success: true,
+                authenticated: false,
+                message: 'Invalid username or password'
+            });
+        }
+
+        // User authenticated successfully, update login status
+        await connection.execute(
+            'UPDATE user_accounts SET login_status = TRUE, last_login = CURRENT_TIMESTAMP WHERE user_id = ?',
+            [username]
+        );
+
+        const userRole = results[0].roles || 'home_owner';
+        const firstName = results[0].first_name;
+        const lastName = results[0].last_name;
+
+        // Get the user's full name
+        const fullName = `${firstName} ${lastName}`;
+
+        await connection.end();
+
+        res.json({
+            success: true,
+            authenticated: true,
+            userRole: userRole,
+            userId: username,
+            userName: fullName
+        });
+    } catch (error) {
+        console.error('Authentication error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error during authentication'
+        });
+    }
 });
 
 // Get all homeowners endpoint
@@ -129,6 +173,231 @@ app.post('/api/users', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to add user',
+            error: error.message
+        });
+    }
+});
+
+// Login endpoint
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        // Input validation
+        if (!username || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Username and password are required'
+            });
+        }
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // First check if any user is already logged in
+        const [activeUsers] = await connection.execute(
+            'SELECT user_id FROM user_accounts WHERE login_status = TRUE'
+        );
+
+        if (activeUsers.length > 0) {
+            await connection.end();
+            return res.status(403).json({
+                success: false,
+                message: 'Another user is currently logged in. Please try again later.',
+                activeUser: activeUsers[0].user_id
+            });
+        }
+
+        // Authenticate the user
+        const [results] = await connection.execute(
+            'SELECT * FROM user_accounts WHERE user_id = ? AND password = ?',
+            [username, password]
+        );
+
+        if (results.length === 0) {
+            await connection.end();
+            return res.json({
+                success: false,
+                authenticated: false,
+                message: 'Invalid username or password'
+            });
+        }
+
+        // User authenticated successfully, update login status
+        await connection.execute(
+            'UPDATE user_accounts SET login_status = TRUE, last_login = CURRENT_TIMESTAMP WHERE user_id = ?',
+            [username]
+        );
+
+        // Get user details for the response
+        const userRole = results[0].roles || 'home_owner';
+        const firstName = results[0].first_name;
+        const lastName = results[0].last_name;
+
+        await connection.end();
+
+        // Return success response with user details
+        res.json({
+            success: true,
+            authenticated: true,
+            userRole: userRole,
+            userId: username,
+            userName: `${firstName} ${lastName}`,
+            message: 'Login successful'
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error during login',
+            error: error.message
+        });
+    }
+});
+
+// Logout endpoint
+app.post('/api/logout', async (req, res) => {
+    try {
+        const { user_id } = req.body;
+
+        // Input validation
+        if (!user_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Check if the user exists and is logged in
+        const [userCheck] = await connection.execute(
+            'SELECT * FROM user_accounts WHERE user_id = ?',
+            [user_id]
+        );
+
+        if (userCheck.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        if (!userCheck[0].login_status) {
+            await connection.end();
+            return res.status(400).json({
+                success: false,
+                message: 'User is not currently logged in'
+            });
+        }
+
+        // Update the login status
+        await connection.execute(
+            'UPDATE user_accounts SET login_status = FALSE WHERE user_id = ?',
+            [user_id]
+        );
+
+        await connection.end();
+
+        res.json({
+            success: true,
+            message: 'Logout successful'
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error during logout',
+            error: error.message
+        });
+    }
+});
+
+// Force logout for all users (admin function)
+app.post('/api/admin/force-logout-all', async (req, res) => {
+    try {
+        const { admin_id } = req.body;
+
+        // Verify admin credentials
+        if (!admin_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Admin ID is required'
+            });
+        }
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Check if user is an admin
+        const [adminCheck] = await connection.execute(
+            'SELECT * FROM user_accounts WHERE user_id = ? AND roles IN ("user_admin", "platform_manager")',
+            [admin_id]
+        );
+
+        if (adminCheck.length === 0) {
+            await connection.end();
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized: Admin privileges required'
+            });
+        }
+
+        // Log out all users
+        await connection.execute('UPDATE user_accounts SET login_status = FALSE');
+
+        await connection.end();
+
+        res.json({
+            success: true,
+            message: 'All users have been logged out'
+        });
+    } catch (error) {
+        console.error('Force logout error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error during force logout operation',
+            error: error.message
+        });
+    }
+});
+
+// Get currently logged in user
+app.get('/api/active-session', async (req, res) => {
+    try {
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Find active users
+        const [activeUsers] = await connection.execute(
+            'SELECT user_id, first_name, last_name, roles, last_login FROM user_accounts WHERE login_status = TRUE'
+        );
+
+        await connection.end();
+
+        if (activeUsers.length === 0) {
+            return res.json({
+                success: true,
+                active: false,
+                message: 'No active session found'
+            });
+        }
+
+        const activeUser = activeUsers[0];
+
+        res.json({
+            success: true,
+            active: true,
+            user: {
+                userId: activeUser.user_id,
+                userName: `${activeUser.first_name} ${activeUser.last_name}`,
+                userRole: activeUser.roles,
+                lastLogin: activeUser.last_login
+            }
+        });
+    } catch (error) {
+        console.error('Active session check error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error checking active session',
             error: error.message
         });
     }

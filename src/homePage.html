@@ -420,7 +420,7 @@
             <p>Manage your cleaning service listings or browse services from other providers.</p>
         </div>
         <div>
-            <button class="btn btn-secondary" id="view-shortlist-btn" onclick="window.location.href='../src/home_owner/home_owner_shortlists.html'" style="margin-right: 10px;">My Shortlist ❤️</button>
+            <button class="btn btn-secondary" id="view-shortlist-btn" onclick="window.location.href='home_owner/home_owner_shortlists.html'" style="margin-right: 10px;">My Shortlist ❤️</button>
             <button class="btn btn-secondary" id="view-bookings-btn" onclick="window.location.href='../src/home_owner/home_owner_bookingList.html'" style="margin-right: 10px;">My Bookings</button>
             <button class="btn" id="my-listings-btn" onclick="window.location.href='../src/home_cleaner/cleanerListings.html'">My Listings</button>
             <button class="btn btn-secondary" id="manage-bookings-btn" onclick="window.location.href='../src/home_cleaner/cleanerBooking.html'" style="margin-left: 10px;">Manage Bookings</button>
@@ -518,17 +518,7 @@
 
 <script>
 
-    // Logout functionality
-    document.getElementById('logout-btn').addEventListener('click', function() {
-    // Clear user data from localStorage
-    localStorage.removeItem('currentUserId');
-    localStorage.removeItem('currentUsername');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('shortlist');
 
-    // Redirect to login page
-    window.location.href = '../public/index.html';
-    });
 
     // Function to close the modal
     function closeModal() {
@@ -799,10 +789,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
 });
 </script>
+<script src="index.js"></script>
+<script src="viewDetails.js"></script>
+<script src="home_owner/shortlist.js"></script>
 <script src="home_owner/home_owner_booking.js"></script>
 <script src="home_cleaner/homeCleanerBCE.js"></script>
-<script src="viewDetails.js"></script>
 <script src="view_tracking.js"></script>
-<script src="home_owner/shortlist.js"></script>
 </body>
 </html>

@@ -95,37 +95,11 @@ class createServiceController {
     constructor() {
         this.entity = new service();
     }
-
     async createCleaningServiceController(serviceData){
-
-
-        // if (!this.validateServiceData(apiData)) {
-        //     return { success: false, error: "Invalid service data" };
-        // }
         // Pass prepared data to entity layer
         return this.entity.createCleaningService(serviceData);
     }
-
-    // Business logic: Validate service data
-    // validateServiceData(data) {
-    //     // Check required fields
-    //     if (!data.title || !data.price || !data.category) {
-    //         return false;
-    //     }
-    //
-    //     // Price must be a positive number
-    //     if (isNaN(data.price) || data.price <= 0) {
-    //         return false;
-    //     }
-    //
-    //     return true;
-    // }
 }
-
-
-
-
-
 
 //Boundary for viewing service listings
 class readServicePage{
