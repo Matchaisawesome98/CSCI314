@@ -113,48 +113,72 @@ class UserAdminEntity {
     }
 }
 
-// CONTROLLER CLASSES
-// Main Controller Class - Acts as a medium to deliver information
-class UserAdminController {
-    constructor(entity) {
+class Creating_users_as_userAdmin_Controller{
+        constructor(entity) {
         this.entity = entity || new UserAdminEntity();
     }
-    
-    // Process adding a new user - no validation, just pass to entity
-    async processAddUser(userData) {
+        async processAddUser(userData) {
         // Create user object with entity
         const user = this.entity.createUser(userData);
         
         // Send to API via entity
         return await this.entity.addUser(user);
     }
-    
-    // Get server status via entity
-    async getServerStatus() {
+        async getServerStatus() {
         return await this.entity.checkServerStatus();
     }
-    
-    // Get all users via entity
-    async getAllUsers() {
+
+       async getAllUsers() {
         return await this.entity.fetchAllUsers();
     }
-    
-    // Get a specific user by ID
-    async getUserById(userId) {
+}
+
+
+
+class View_all_users_as_UserAdmin_Controller{
+        constructor(entity) {
+        this.entity = entity || new UserAdminEntity();
+    }
+           async getAllUsers() {
+        return await this.entity.fetchAllUsers();
+    }
+        async getUserById(userId) {
         return await this.entity.fetchUserById(userId);
     }
-    
-    // Update a user
-    async updateUser(userId, userData) {
+}
+
+
+
+class Search_for_user_as_UserAdmin_Controller{
+        constructor(entity) {
+        this.entity = entity || new UserAdminEntity();
+    }
+        async getAllUsers() {
+        return await this.entity.fetchAllUsers();
+    }
+}
+
+
+class Edit_users_as_UserAdmin_Controller{
+        constructor(entity) {
+        this.entity = entity || new UserAdminEntity();
+    }
+        async updateUser(userId, userData) {
         return await this.entity.updateUser(userId, userData);
     }
 }
+
+
+
+
+
+
 
 // UI/BOUNDARY CLASSES
 // Creation Boundary Class - Handles UI interaction for user creation
 class Creating_users_as_userAdmin_Boundary {
     constructor(controller) {
-        this.controller = controller || new UserAdminController();
+        this.controller = controller || new Creating_users_as_userAdmin_Controller();
         
         // DOM Elements
         this.addUserForm = document.getElementById('addUserForm');
@@ -353,7 +377,7 @@ class Creating_users_as_userAdmin_Boundary {
 // View UI class - For displaying and managing the user list
 class View_all_users_as_UserAdmin_boundary {
     constructor() {
-        this.controller = new UserAdminController();
+        this.controller = new View_all_users_as_UserAdmin_Controller();
         this.statusDiv = document.getElementById('status');
         this.tableContainer = document.getElementById('tableContainer');
     }
@@ -542,11 +566,36 @@ class View_all_users_as_UserAdmin_boundary {
     }
 }
 
-// Search UI class - Extends ViewUI to reuse the rendering logic
-class Search_for_user_as_UserAdmin_boundary extends View_all_users_as_UserAdmin_boundary {
+// Refactored Search UI class - No longer extends ViewUI
+class Search_for_user_as_UserAdmin_boundary {
     constructor() {
-        super();
+        this.controller = new Search_for_user_as_UserAdmin_Controller();
+        this.statusDiv = document.getElementById('status');
+        this.tableContainer = document.getElementById('tableContainer');
         this.searchInput = document.getElementById('searchInput');
+    }
+    
+    showLoading() {
+        if (!this.statusDiv) return;
+        
+        this.statusDiv.style.display = 'block';
+        this.statusDiv.className = 'status';
+    }
+    
+    showError(message) {
+        if (!this.statusDiv) return;
+        
+        this.statusDiv.style.display = 'block';
+        this.statusDiv.className = 'status error';
+        this.statusDiv.innerHTML = `Error: ${message}`;
+    }
+    
+    showSuccess(count) {
+        if (!this.statusDiv) return;
+        
+        this.statusDiv.style.display = 'block';
+        this.statusDiv.className = 'status success';
+        this.statusDiv.innerHTML = `Found ${count} records`;
     }
     
     showSearchLoading() {
@@ -563,6 +612,58 @@ class Search_for_user_as_UserAdmin_boundary extends View_all_users_as_UserAdmin_
         this.statusDiv.style.display = 'block';
         this.statusDiv.className = 'status success';
         this.statusDiv.innerHTML = `Found ${count} matching users for "${searchTerm}"`;
+    }
+    
+    renderTable(data) {
+        if (!this.tableContainer) return;
+        
+        if (!data || data.length === 0) {
+            this.tableContainer.innerHTML = '<p>No records found in the table.</p>';
+            return;
+        }
+        
+        // Create table
+        let tableHTML = '<table id="usersTable"><thead><tr>';
+        
+        // Get column names from the first record
+        const columns = Object.keys(data[0]);
+        
+        // Add table headers
+        columns.forEach(column => {
+            tableHTML += `<th>${column}</th>`;
+        });
+        
+        // Add actions column
+        tableHTML += '<th>Actions</th>';
+        
+        tableHTML += '</tr></thead><tbody>';
+        
+        // Add table rows
+        data.forEach(row => {
+            const rowId = row.id || row.user_id;
+            tableHTML += `<tr id="user-row-${rowId}">`;
+            columns.forEach(column => {
+                // Special handling for password column - blur it
+                if (column === 'password') {
+                    tableHTML += `<td><span class="blur-text">${row[column] || ''}</span></td>`;
+                }
+                // Special handling for the isSuspended column to show true/false explicitly
+                else if (column === 'isSuspended') {
+                    tableHTML += `<td>${row[column] ? 'true' : 'false'}</td>`;
+                }
+                else {
+                    tableHTML += `<td>${row[column] || ''}</td>`;
+                }
+            });
+            
+            // Add edit button
+            tableHTML += `<td><button class="edit-btn" onclick="openEditModal(${JSON.stringify(row).replace(/"/g, '&quot;')})">Edit</button></td>`;
+            
+            tableHTML += '</tr>';
+        });
+        
+        tableHTML += '</tbody></table>';
+        this.tableContainer.innerHTML = tableHTML;
     }
     
     async performSearch() {
@@ -616,7 +717,7 @@ class Search_for_user_as_UserAdmin_boundary extends View_all_users_as_UserAdmin_
 // Edit Boundary class - Handles UI, presentation, validation, and error handling for editing users
 class Edit_users_as_UserAdmin_Boundary {
     constructor() {
-        this.controller = new UserAdminController();
+        this.controller = new Edit_users_as_UserAdmin_Controller();
         this.statusDiv = document.getElementById('status');
         this.editModal = document.getElementById('editModal');
         this.editUserForm = document.getElementById('editUserForm');
@@ -678,60 +779,73 @@ class Edit_users_as_UserAdmin_Boundary {
     }
     
     async openEditModal(userData) {
-        if (!this.editModal || !this.userIdField || !this.userNameField || !this.formFields) return;
+    try {
+        // Store the user ID
+        this.userIdField.value = userData.id || userData.user_id;
         
-        try {
-            // Store the user ID
-            this.userIdField.value = userData.id || userData.user_id;
+        // Store the user name (or email or username, whatever is available)
+        const userName = userData.name || userData.username || userData.email || `User #${this.userIdField.value}`;
+        this.userNameField.value = userName;
+        
+        // Clear previous form fields
+        this.formFields.innerHTML = '';
+        
+        // Create form fields for each property
+        Object.keys(userData).forEach(key => {
+            // Skip primary key as it shouldn't be edited
+            if (key === 'id' || key === 'user_id') return;
             
-            // Store the user name (or email or username, whatever is available)
-            const userName = userData.name || userData.username || userData.email || `User #${this.userIdField.value}`;
-            this.userNameField.value = userName;
+            const formGroup = document.createElement('div');
+            formGroup.className = 'form-group';
             
-            // Clear previous form fields
-            this.formFields.innerHTML = '';
+            const label = document.createElement('label');
+            label.htmlFor = key;
+            label.textContent = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
             
-            // Create form fields for each property
-            Object.keys(userData).forEach(key => {
-                // Skip primary key as it shouldn't be edited
-                if (key === 'id' || key === 'user_id') return;
-                
-                const formGroup = document.createElement('div');
-                formGroup.className = 'form-group';
-                
-                const label = document.createElement('label');
-                label.htmlFor = key;
-                label.textContent = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
-                
-                let input;
-                
-                // Special handling for boolean values
-                if (key === 'isSuspended' || (typeof userData[key] === 'boolean')) {
-                    input = document.createElement('select');
-                    input.innerHTML = `
-                        <option value="true" ${userData[key] ? 'selected' : ''}>true</option>
-                        <option value="false" ${!userData[key] ? 'selected' : ''}>false</option>
-                    `;
-                } else {
-                    input = document.createElement('input');
-                    input.type = key === 'password' ? 'password' : 'text';
-                    input.value = userData[key] || '';
-                }
-                
-                input.id = key;
-                input.name = key;
-                
-                formGroup.appendChild(label);
-                formGroup.appendChild(input);
-                this.formFields.appendChild(formGroup);
-            });
+            let input;
             
-            // Show the modal
-            this.editModal.style.display = 'block';
-        } catch (error) {
-            this.showError(`Error opening edit modal: ${error.message}`);
-        }
+            // Special handling for boolean values
+            if (key === 'isSuspended' || (typeof userData[key] === 'boolean')) {
+                input = document.createElement('select');
+                input.innerHTML = `
+                    <option value="true" ${userData[key] ? 'selected' : ''}>true</option>
+                    <option value="false" ${!userData[key] ? 'selected' : ''}>false</option>
+                `;
+            } 
+            // Special handling for roles field
+            else if (key === 'roles' || key === 'role') {
+                input = document.createElement('select');
+                
+                // Define the available roles
+                const roles = ['User Admin', 'Cleaner', 'Homeowner', 'Platform Manager'];
+                
+                // Create option elements for each role
+                const options = roles.map(role => {
+                    const isSelected = userData[key] === role;
+                    return `<option value="${role}" ${isSelected ? 'selected' : ''}>${role}</option>`;
+                }).join('');
+                
+                input.innerHTML = options;
+            } else {
+                input = document.createElement('input');
+                input.type = key === 'password' ? 'password' : 'text';
+                input.value = userData[key] || '';
+            }
+            
+            input.id = key;
+            input.name = key;
+            
+            formGroup.appendChild(label);
+            formGroup.appendChild(input);
+            this.formFields.appendChild(formGroup);
+        });
+        
+        // Show the modal
+        this.editModal.style.display = 'block';
+    } catch (error) {
+        this.showError(`Error opening edit modal: ${error.message}`);
     }
+}
     
     closeEditModal() {
         if (!this.editModal) return;
@@ -867,7 +981,7 @@ function closeEditModal() {
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize main entity and controller
     const entity = new UserAdminEntity();
-    const controller = new UserAdminController(entity);
+    const controller = new Creating_users_as_userAdmin_Controller(entity);
     
     // Initialize the creation boundary if on creation page
     if (document.getElementById('addUserForm')) {

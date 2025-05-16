@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Navigation</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 90%;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .nav-button {
+            display: block;
+            padding: 16px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .nav-button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-creation {
+            background-color: #2ecc71;
+        }
+
+        .admin-creation:hover {
+            background-color: #27ae60;
+        }
+
+        .user-management {
+            background-color: #e74c3c;
+        }
+
+        .user-management:hover {
+            background-color: #c0392b;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Admin Navigation</h1>
+        </header>
+
+        <div class="nav-links">
+            <a href="Admin_creation.html" class="nav-button admin-creation">Admin Creation</a>
+            <a href="edit_user_suspend.html" class="nav-button user-management">Edit & Suspend Users</a>
+        </div>
+
+        <footer>
+            <p>Admin System Navigation</p>
+        </footer>
+    </div>
+</body>
+
+</html>
