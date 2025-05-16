@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CleanConnect - Category Management</title>
+    <style>
+        :root {
+            --primary-color: #ff5722;
+            --secondary-color: #2196f3;
+            --light-gray: #f5f5f5;
+            --dark-gray: #757575;
+            --white: #ffffff;
+            --black: #333333;
+            --shadow: 0 2px 5px rgba(0,0,0,0.1);
+            --radius: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: var(--black);
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--white);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 15px 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .search-container {
+            flex-grow: 1;
+            margin: 0 20px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+            font-size: 16px;
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--dark-gray);
+            cursor: pointer;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #e64a19;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #1976d2;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 200;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: var(--radius);
+            width: 80%;
+            max-width: 600px;
+            box-shadow: var(--shadow);
+            animation: modalopen 0.3s;
+        }
+
+        @keyframes modalopen {
+            from {opacity: 0; transform: translateY(-50px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        .close-button {
+            color: var(--dark-gray);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-button:hover {
+            color: var(--black);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+            font-size: 16px;
+        }
+
+        .form-textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .section-title {
+            font-size: 24px;
+            margin: 30px 0 15px;
+            color: var(--black);
+        }
+
+        .management-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .management-title {
+            font-size: 28px;
+            color: var(--black);
+        }
+
+        .categories-table {
+            width: 100%;
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .categories-table th,
+        .categories-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .categories-table th {
+            background-color: #f1f1f1;
+            font-weight: bold;
+            color: var(--black);
+        }
+
+        .categories-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .categories-table tr:hover {
+            background-color: rgba(33, 150, 243, 0.05);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .edit-btn, .delete-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s;
+        }
+
+        .edit-btn {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .edit-btn:hover {
+            background-color: #45a049;
+        }
+
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        .badge {
+            display: inline-block;
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .welcome-section {
+            background-color: var(--white);
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading-spinner::after {
+            content: "";
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {transform: rotate(360deg);}
+        }
+
+        .error-container {
+            background-color: #ffebee;
+            border: 1px solid #f44336;
+            border-radius: var(--radius);
+            padding: 15px;
+            margin: 20px 0;
+            color: #d32f2f;
+            display: none;
+        }
+
+        /* User info in header */
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-left: 15px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .user-name {
+            font-weight: 500;
+            margin-right: 10px;
+        }
+        
+        .btn-logout {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-left: 8px;
+        }
+        
+        .btn-logout:hover {
+            background-color: #d32f2f;
+        }
+
+        /* Nav tabs for main page and reports */
+        .nav-tabs {
+            display: flex;
+            margin-top: 20px;
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .nav-tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            flex-grow: 1;
+            text-align: center;
+            transition: background-color 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-tab.active {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        .nav-tab:not(.active):hover {
+            background-color: var(--light-gray);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Report section styles */
+        .report-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .report-option {
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            flex: 1;
+            min-width: 200px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            text-align: center;
+        }
+
+        .report-option:hover {
+            transform: translateY(-5px);
+        }
+
+        .report-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .report-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .report-description {
+            font-size: 14px;
+            color: var(--dark-gray);
+        }
+
+        .report-results {
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--dark-gray);
+        }
+
+        /* Responsive adjustments */
+        @media screen and (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+            }
+
+            .search-container {
+                margin: 15px 0;
+                width: 100%;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 5% auto;
+            }
+
+            .categories-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .management-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .report-options {
+                flex-direction: column;
+            }
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .report-date-range {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .date-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+        }
+
+        .export-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background-color: #4caf50;
+        }
+
+        .back-to-options {
+            margin-bottom: 20px;
+            display: inline-block;
+            color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .back-to-options:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">CleanConnect</a>
+                <div class="search-container">
+                    <input type="text" class="search-input" id="search-input" placeholder="Search for categories...">
+                    <button class="search-btn" id="search-btn">🔍</button>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <button class="btn" id="add-category-btn">+ Add Category</button>
+                    <button class="btn btn-secondary" id="generate-report-btn" style="margin-left: 10px;">Generate Reports</button>
+                    <div class="user-info">
+                        <div class="user-avatar" id="user-avatar">A</div>
+                        <span class="user-name" id="username-display">Admin User</span>
+                        <button class="btn-logout" id="logout-btn">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" id="categories-tab">Categories</div>
+            <div class="nav-tab" id="reports-tab">Reports</div>
+        </div>
+
+        <!-- Categories Tab Content -->
+        <div class="tab-content active" id="categories-content">
+            <div class="welcome-section">
+                <h2>Category Management Portal</h2>
+                <p>Manage service categories to help users find the right cleaning services. Add, edit, or remove categories as needed.</p>
+            </div>
+
+            <div id="error-container" class="error-container"></div>
+
+            <div class="management-header">
+                <h1 class="management-title">Service Categories</h1>
+                <div>
+                    <button class="btn" id="add-category-btn-main">+ Add New Category</button>
+                </div>
+            </div>
+
+            <div id="loading-spinner" class="loading-spinner"></div>
+
+            <table class="categories-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Category Name</th>
+                        <th>Description</th>
+                        <th>Services Count</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="categories-container">
+                    <!-- Categories will be dynamically generated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Reports Tab Content -->
+        <div class="tab-content" id="reports-content">
+            <div class="welcome-section">
+                <h2>Reports Dashboard</h2>
+                <p>Generate and view reports to analyze category performance, service comparisons, and revenue metrics.</p>
+            </div>
+
+            <!-- Report Options Section -->
+            <div id="report-options-section">
+                <h2 class="section-title">Select Report Type</h2>
+                
+                <div class="report-options">
+                    <div class="report-option" id="daily-report">
+                        <div class="report-icon">📊</div>
+                        <div class="report-title">Daily Report</div>
+                        <p class="report-description">View daily performance metrics for each category</p>
+                    </div>
+                    
+                    <div class="report-option" id="weekly-report">
+                        <div class="report-icon">📈</div>
+                        <div class="report-title">Weekly Report</div>
+                        <p class="report-description">Compare services across previous weeks</p>
+                    </div>
+                    
+                    <div class="report-option" id="monthly-report">
+                        <div class="report-icon">💰</div>
+                        <div class="report-title">Monthly Report</div>
+                        <p class="report-description">Analyze revenue gaps between months</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Results Section (initially hidden) -->
+            <div id="report-results-section" style="display: none;">
+                <div class="back-to-options" id="back-to-options">← Back to report options</div>
+                
+                <div class="report-header">
+                    <h2 class="section-title" id="report-title">Daily Report</h2>
+                    
+                    <div class="report-date-range">
+                        <input type="date" id="start-date" class="date-input">
+                        <span id="end-date-label" style="display: none;">to</span>
+                        <input type="date" id="end-date" class="date-input" style="display: none;">
+                        <button class="btn" id="update-report-btn">Update</button>
+                    </div>
+                    
+                    
+                </div>
+                
+                <!-- Stats Overview -->
+                <div class="stats-container" id="report-stats">
+                    <!-- Stat cards will be dynamically generated here -->
+                </div>
+                
+                
+                
+                
+                <!-- Detailed Table -->
+                <div class="report-results">
+                    <h3>Detailed Data</h3>
+                    <table class="categories-table" id="report-table">
+                        <!-- Report table data will be dynamically generated here -->
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Category Modal -->
+    <div id="category-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-modal">&times;</span>
+            <h2 id="modal-title">Add New Category</h2>
+            <form id="category-form">
+                <input type="hidden" id="category-id">
+                <div class="form-group">
+                    <label class="form-label" for="category-name">Category Name</label>
+                    <input type="text" class="form-input" id="category-name" required>
+                    <div class="error-message" id="name-error">Please enter a valid category name</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="category-description">Description</label>
+                    <textarea class="form-textarea" id="category-description" required></textarea>
+                    <div class="error-message" id="description-error">Please enter a description</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="category-status">Status</label>
+                    <select class="form-input" id="category-status" required>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="category-icon">Icon (Emoji or URL)</label>
+                    <input type="text" class="form-input" id="category-icon" placeholder="🧹 or https://example.com/icon.png">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-button">Cancel</button>
+                    <button type="submit" class="btn" id="save-button">Save Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-delete-modal">&times;</span>
+            <h2>Confirm Deletion</h2>
+            <p>Are you sure you want to delete this category? This action cannot be undone.</p>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancel-delete-button">Cancel</button>
+                <button type="button" class="btn" id="confirm-delete-button" style="background-color: #f44336;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-logout-modal">&times;</span>
+            <h2>Confirm Logout</h2>
+            <p>Are you sure you want to log out of your account?</p>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancel-logout-button">Cancel</button>
+                <button type="button" class="btn" id="confirm-logout-button">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API URLs - Update these to match your server endpoints
+        const API_BASE_URL = 'http://localhost:3000';
+        const API_ENDPOINTS = {
+            GET_CATEGORIES: `${API_BASE_URL}/api/categories`,
+            CREATE_CATEGORY: `${API_BASE_URL}/api/categories`,
+            UPDATE_CATEGORY: `${API_BASE_URL}/api/categories`, // Will append /:id in the function
+            DELETE_CATEGORY: `${API_BASE_URL}/api/categories`, // Will append /:id in the function
+            SEARCH_CATEGORIES: `${API_BASE_URL}/api/categories/search`,
+            GET_DAILY_REPORT: `${API_BASE_URL}/api/reports/daily`,
+            GET_WEEKLY_REPORT: `${API_BASE_URL}/api/reports/weekly`,
+            GET_MONTHLY_REPORT: `${API_BASE_URL}/api/reports/monthly`
+        };
+
+        // Current user info
+        let currentUser = {
+            user_id: 'admin01',
+            name: 'Admin User',
+            email: 'admin@cleanconnect.com'
+        };
+
+        // Current report type
+        let currentReportType = '';
+
+        // DOM elements
+        const categoriesContainer = document.getElementById('categories-container');
+        const categoryModal = document.getElementById('category-modal');
+        const deleteModal = document.getElementById('delete-modal');
+        const logoutModal = document.getElementById('logout-modal');
+        const categoryForm = document.getElementById('category-form');
+        const modalTitle = document.getElementById('modal-title');
+        const categoryIdInput = document.getElementById('category-id');
+        const categoryNameInput = document.getElementById('category-name');
+        const categoryDescriptionInput = document.getElementById('category-description');
+        const categoryStatusInput = document.getElementById('category-status');
+        const categoryIconInput = document.getElementById('category-icon');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const addCategoryBtn = document.getElementById('add-category-btn');
+        const addCategoryBtnMain = document.getElementById('add-category-btn-main');
+        const closeModal = document.getElementById('close-modal');
+        const cancelButton = document.getElementById('cancel-button');
+        const closeDeleteModal = document.getElementById('close-delete-modal');
+        const cancelDeleteButton = document.getElementById('cancel-delete-button');
+        const confirmDeleteButton = document.getElementById('confirm-delete-button');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const errorContainer = document.getElementById('error-container');
+        const logoutBtn = document.getElementById('logout-btn');
+        const closeLogoutModal = document.getElementById('close-logout-modal');
+        const cancelLogoutButton = document.getElementById('cancel-logout-button');
+        const confirmLogoutButton = document.getElementById('confirm-logout-button');
+        const usernameDisplay = document.getElementById('username-display');
+        const userAvatar = document.getElementById('user-avatar');
+
+        // Tabs elements
+        const categoriesTab = document.getElementById('categories-tab');
+        const reportsTab = document.getElementById('reports-tab');
+        const categoriesContent = document.getElementById('categories-content');
+        const reportsContent = document.getElementById('reports-content');
+
+        // Report elements
+        const generateReportBtn = document.getElementById('generate-report-btn');
+        const reportOptionsSection = document.getElementById('report-options-section');
+        const reportResultsSection = document.getElementById('report-results-section');
+        const dailyReportOption = document.getElementById('daily-report');
+        const weeklyReportOption = document.getElementById('weekly-report');
+        const monthlyReportOption = document.getElementById('monthly-report');
+        const backToOptionsBtn = document.getElementById('back-to-options');
+        const reportTitle = document.getElementById('report-title');
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+        const endDateLabel = document.getElementById('end-date-label');
+        const updateReportBtn = document.getElementById('update-report-btn');
+        const reportStats = document.getElementById('report-stats');
+        const reportTable = document.getElementById('report-table');
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategories();
+            setupEventListeners();
+            setupUserInfo();
+            setupDates();
+        });
+
+        // Setup user information
+        function setupUserInfo() {
+            usernameDisplay.textContent = currentUser.name;
+            userAvatar.textContent = currentUser.name.charAt(0);
+        }
+
+        // Setup initial dates for reports
+        function setupDates() {
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.value = today;
+            endDateInput.value = today;
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Add category buttons
+            addCategoryBtn.addEventListener('click', showAddCategoryModal);
+            addCategoryBtnMain.addEventListener('click', showAddCategoryModal);
+            
+            // Modal close buttons
+            closeModal.addEventListener('click', hideModal);
+            cancelButton.addEventListener('click', hideModal);
+            closeDeleteModal.addEventListener('click', hideDeleteModal);
+            cancelDeleteButton.addEventListener('click', hideDeleteModal);
+            
+            // Form submission
+            categoryForm.addEventListener('submit', saveCategory);
+            
+            // Search functionality
+            searchBtn.addEventListener('click', searchCategories);
+            searchInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    searchCategories();
+                }
+            });
+            
+            // Delete confirmation
+            confirmDeleteButton.addEventListener('click', deleteCategory);
+
+            // Logout functionality
+            logoutBtn.addEventListener('click', showLogoutModal);
+            closeLogoutModal.addEventListener('click', hideLogoutModal);
+            cancelLogoutButton.addEventListener('click', hideLogoutModal);
+            confirmLogoutButton.addEventListener('click', logout);
+
+            // Tab navigation
+            categoriesTab.addEventListener('click', function() {
+                categoriesTab.classList.add('active');
+                reportsTab.classList.remove('active');
+                categoriesContent.classList.add('active');
+                reportsContent.classList.remove('active');
+            });
+
+            reportsTab.addEventListener('click', function() {
+                reportsTab.classList.add('active');
+                categoriesTab.classList.remove('active');
+                reportsContent.classList.add('active');
+                categoriesContent.classList.remove('active');
+            });
+
+            // Generate report button
+            generateReportBtn.addEventListener('click', function() {
+                reportsTab.click();
+            });
+
+            // Report option selections
+            dailyReportOption.addEventListener('click', function() {
+                showReport('daily');
+            });
+
+            weeklyReportOption.addEventListener('click', function() {
+                showReport('weekly');
+            });
+
+            monthlyReportOption.addEventListener('click', function() {
+                showReport('monthly');
+            });
+
+            // Back to report options
+            backToOptionsBtn.addEventListener('click', function() {
+                reportOptionsSection.style.display = 'block';
+                reportResultsSection.style.display = 'none';
+            });
+
+            // Update report button
+            updateReportBtn.addEventListener('click', function() {
+                generateReport(currentReportType);
+            });
+
+            
+
+            // Close modals when clicking outside
+            window.addEventListener('click', function(e) {
+                if (e.target === logoutModal) {
+                    hideLogoutModal();
+                }
+            });
+        }
+
+        // Show report by type
+        function showReport(type) {
+            currentReportType = type;
+            
+            // Update title
+            switch(type) {
+                case 'daily':
+                    reportTitle.textContent = 'Daily Report';
+                    endDateInput.style.display = 'none';
+                    endDateLabel.style.display = 'none';
+                    break;
+                case 'weekly':
+                    reportTitle.textContent = 'Weekly Report';
+                    endDateInput.style.display = 'inline-block';
+                    endDateLabel.style.display = 'inline-block';
+                    // Set end date to 7 days after start date
+                    const startDate = new Date(startDateInput.value);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + 6);
+                    endDateInput.value = endDate.toISOString().split('T')[0];
+                    break;
+                case 'monthly':
+                    reportTitle.textContent = 'Monthly Report';
+                    endDateInput.style.display = 'inline-block';
+                    endDateLabel.style.display = 'inline-block';
+                    // Set end date to the end of the month
+                    const date = new Date(startDateInput.value);
+                    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+                    endDateInput.value = lastDay.toISOString().split('T')[0];
+                    break;
+            }
+            
+            // Hide options and show results
+            reportOptionsSection.style.display = 'none';
+            reportResultsSection.style.display = 'block';
+            
+            // Generate the report
+            generateReport(type);
+        }
+
+        // Generate report data
+        async function generateReport(type) {
+    reportStats.innerHTML = '<div class="loading-spinner" style="display:block"></div>';
+    reportTable.innerHTML = '';
+    
+    try {
+        let url;
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+        
+        switch(type) {
+            case 'daily':
+                url = `${API_ENDPOINTS.GET_DAILY_REPORT}?date=${startDate}`;
+                break;
+            case 'weekly':
+                url = `${API_ENDPOINTS.GET_WEEKLY_REPORT}?startDate=${startDate}&endDate=${endDate}`;
+                break;
+            case 'monthly':
+                url = `${API_ENDPOINTS.GET_MONTHLY_REPORT}?startDate=${startDate}&endDate=${endDate}`;
+                break;
+        }
+        
+        // Make the actual API call instead of generating mock data
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch report: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to fetch report');
+        }
+        
+        // Use the real data from your API
+        renderReportStats(data.data);
+        renderReportChart(data.data, type);
+        renderReportTable(data.data, type);
+        
+    } catch (error) {
+        console.error(`Error generating ${type} report:`, error);
+        reportStats.innerHTML = `<div class="error-container" style="display:block">Failed to generate report: ${error.message}</div>`;
+    }
+}
+
+        
+        // Render report stats
+        function renderReportStats(data) {
+    reportStats.innerHTML = '';
+    
+    // Ensure data has required structure
+    if (!data) {
+        reportStats.innerHTML = '<div class="error-container" style="display:block">No data available</div>';
+        return;
+    }
+    
+    switch(currentReportType) {
+        case 'daily':
+            // Make sure categories exists and has items
+            const mostPopularDaily = data.categories && data.categories.length > 0 
+                ? data.categories.sort((a, b) => (b.bookings || 0) - (a.bookings || 0))[0].name
+                : 'None';
+                
+            reportStats.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Total Bookings</div>
+                    <div class="stat-value">${data.totalBookings || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value">$${(data.totalRevenue || 0).toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Most Popular Category</div>
+                    <div class="stat-value">${mostPopularDaily}</div>
+                </div>
+            `;
+            break;
+            
+            
+        case 'weekly':
+            // Check if dailyData exists and has entries
+            if (!data.dailyData || !Array.isArray(data.dailyData) || data.dailyData.length === 0) {
+                reportStats.innerHTML = '<div class="error-container" style="display:block">No daily data available</div>';
+                return;
+            }
+            
+            // Find highest day safely
+            const highestDay = data.dailyData.reduce((max, day) => 
+                (day && day.totalBookings > (max?.totalBookings || 0)) ? day : max, 
+                data.dailyData[0] || { date: data.startDate, totalBookings: 0 });
+            
+            // Safely get most popular category
+            const mostPopularWeekly = data.categories && data.categories.length > 0 
+                ? data.categories.sort((a, b) => (b.bookings || 0) - (a.bookings || 0))[0].name
+                : 'None';
+            
+            reportStats.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Weekly Bookings</div>
+                    <div class="stat-value">${data.totalBookings || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Weekly Revenue</div>
+                    <div class="stat-value">$${(data.totalRevenue || 0).toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Peak Day</div>
+                    <div class="stat-value">${highestDay && highestDay.date ? 
+                        new Date(highestDay.date).toLocaleDateString('en-US', {weekday: 'long'}) : 'None'}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Most Popular Category</div>
+                    <div class="stat-value">${mostPopularWeekly}</div>
+                </div>
+            `;
+            break;
+            
+        case 'monthly':
+            // Check for required data structures
+            if (!data.currentMonth || !data.previousMonth) {
+                reportStats.innerHTML = '<div class="error-container" style="display:block">Monthly data is incomplete</div>';
+                return;
+            }
+            
+            // Safe values for bookings and growth
+            const curBookings = data.currentMonth.totalBookings || 0;
+            const prevBookings = data.previousMonth.totalBookings || 0;
+            const bookingGrowth = data.bookingGrowth || 0;
+            
+            // Safe values for revenue and growth
+            const curRevenue = data.currentMonth.totalRevenue || 0;
+            const prevRevenue = data.previousMonth.totalRevenue || 0;
+            const revenueGrowth = data.revenueGrowth || 0;
+            
+            // Safely find best growth category
+            let bestGrowthCat = 'None';
+            let needsAttentionCat = 'None';
+            
+            if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
+                // Get categories with valid growth values
+                const validCategories = data.categories.filter(cat => cat && typeof cat.revenueGrowth !== 'undefined');
+                
+                if (validCategories.length > 0) {
+                    // Sort for best and worst growth
+                    const sortedByGrowth = [...validCategories].sort((a, b) => 
+                        (parseFloat(b.revenueGrowth) || 0) - (parseFloat(a.revenueGrowth) || 0));
+                    
+                    bestGrowthCat = sortedByGrowth[0].name || 'None';
+                    needsAttentionCat = sortedByGrowth[sortedByGrowth.length - 1].name || 'None';
+                }
+            }
+            
+            reportStats.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Monthly Bookings</div>
+                    <div class="stat-value">${curBookings}</div>
+                    <div style="color: ${parseFloat(bookingGrowth) >= 0 ? 'green' : 'red'};">
+                        ${parseFloat(bookingGrowth) >= 0 ? '↑' : '↓'} ${Math.abs(parseFloat(bookingGrowth))}%
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Monthly Revenue</div>
+                    <div class="stat-value">$${curRevenue.toFixed(2)}</div>
+                    <div style="color: ${parseFloat(revenueGrowth) >= 0 ? 'green' : 'red'};">
+                        ${parseFloat(revenueGrowth) >= 0 ? '↑' : '↓'} ${Math.abs(parseFloat(revenueGrowth))}%
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Best Growth Category</div>
+                    <div class="stat-value">${bestGrowthCat}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Needs Attention</div>
+                    <div class="stat-value">${needsAttentionCat}</div>
+                </div>
+            `;
+            break;
+    }
+}
+
+        // Empty function maintained for compatibility
+        function renderReportChart(data, type) {
+            // Chart functionality removed
+            return;
+        }
+
+        // Render report table
+       function renderReportTable(data, type) {
+    reportTable.innerHTML = '';
+    
+    // Safety check for data
+    if (!data) {
+        reportTable.innerHTML = '<div class="error-container" style="display:block">No data available for table</div>';
+        return;
+    }
+    
+    switch(type) {
+        case 'daily':
+            // Safety check for categories
+            if (!data.categories || !Array.isArray(data.categories)) {
+                reportTable.innerHTML = '<div class="error-container" style="display:block">No category data available for table</div>';
+                return;
+            }
+            
+            // Create a table for daily category performance (without rating column)
+            reportTable.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Bookings</th>
+                        <th>Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.categories.map(cat => {
+                        if (!cat) return '';
+                        return `
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center;">
+                                        <span style="font-size: 20px; margin-right: 8px;">${cat.icon || '📊'}</span>
+                                        ${cat.name || 'Unknown'}
+                                    </div>
+                                </td>
+                                <td>${cat.bookings || 0}</td>
+                                <td>$${(cat.revenue || 0).toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                    <tr style="font-weight: bold; background-color: #f9f9f9;">
+                        <td>Total</td>
+                        <td>${data.totalBookings || 0}</td>
+                        <td>$${(data.totalRevenue || 0).toFixed(2)}</td>
+                    </tr>
+                </tbody>
+            `;
+            break;
+            
+        case 'weekly':
+            // Safety checks for required data
+            if (!data.categories || !Array.isArray(data.categories) || 
+                !data.dailyData || !Array.isArray(data.dailyData)) {
+                reportTable.innerHTML = '<div class="error-container" style="display:block">Week data is incomplete</div>';
+                return;
+            }
+            
+            // Create a table for weekly category performance
+            reportTable.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Total Bookings</th>
+                        <th>Total Revenue</th>
+                        <th>Avg. Bookings/Day</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.categories.map(cat => {
+                        if (!cat) return '';
+                        
+                        // Safely calculate average
+                        const avgBookingsPerDay = data.dailyData.length > 0 ? 
+                            ((cat.bookings || 0) / data.dailyData.length).toFixed(1) : '0.0';
+                            
+                        return `
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center;">
+                                        <span style="font-size: 20px; margin-right: 8px;">${cat.icon || '📊'}</span>
+                                        ${cat.name || 'Unknown'}
+                                    </div>
+                                </td>
+                                <td>${cat.bookings || 0}</td>
+                                <td>$${(cat.revenue || 0).toFixed(2)}</td>
+                                <td>${avgBookingsPerDay}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                    <tr style="font-weight: bold; background-color: #f9f9f9;">
+                        <td>Total</td>
+                        <td>${data.totalBookings || 0}</td>
+                        <td>$${(data.totalRevenue || 0).toFixed(2)}</td>
+                        <td>${data.dailyData.length > 0 ? 
+                            ((data.totalBookings || 0) / data.dailyData.length).toFixed(1) : '0.0'}</td>
+                    </tr>
+                </tbody>
+            `;
+            break;
+            
+        case 'monthly':
+            // Safety checks for required data
+            if (!data.categories || !Array.isArray(data.categories) || 
+                !data.currentMonth || !data.previousMonth) {
+                reportTable.innerHTML = '<div class="error-container" style="display:block">Monthly data is incomplete</div>';
+                return;
+            }
+            
+            // Create a table for monthly comparison
+            reportTable.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Previous Month</th>
+                        <th>Current Month</th>
+                        <th>Growth</th>
+                        <th>Revenue Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.categories.map(cat => {
+                        if (!cat) return '';
+                        
+                        // Safe values
+                        const prevRev = cat.previousRevenue || 0;
+                        const currRev = cat.currentRevenue || 0;
+                        const revGrowth = cat.revenueGrowth || 0;
+                        const revChange = currRev - prevRev;
+                        
+                        return `
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center;">
+                                        <span style="font-size: 20px; margin-right: 8px;">${cat.icon || '📊'}</span>
+                                        ${cat.name || 'Unknown'}
+                                    </div>
+                                </td>
+                                <td>$${prevRev.toFixed(2)}</td>
+                                <td>$${currRev.toFixed(2)}</td>
+                                <td style="color: ${revGrowth >= 0 ? 'green' : 'red'};">
+                                    ${revGrowth >= 0 ? '+' : ''}${revGrowth}%
+                                </td>
+                                <td>$${revChange.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                    <tr style="font-weight: bold; background-color: #f9f9f9;">
+                        <td>Total</td>
+                        <td>$${(data.previousMonth.totalRevenue || 0).toFixed(2)}</td>
+                        <td>$${(data.currentMonth.totalRevenue || 0).toFixed(2)}</td>
+                        <td style="color: ${data.revenueGrowth >= 0 ? 'green' : 'red'};">
+                            ${data.revenueGrowth >= 0 ? '+' : ''}${data.revenueGrowth || 0}%
+                        </td>
+                        <td>$${((data.currentMonth.totalRevenue || 0) - (data.previousMonth.totalRevenue || 0)).toFixed(2)}</td>
+                    </tr>
+                </tbody>
+            `;
+            break;
+    }
+}
+
+        
+
+        // Show loading spinner
+        function showLoading() {
+            loadingSpinner.style.display = 'block';
+        }
+
+        // Hide loading spinner
+        function hideLoading() {
+            loadingSpinner.style.display = 'none';
+        }
+
+        // Show error message
+        function showError(message) {
+            errorContainer.textContent = message;
+            errorContainer.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                errorContainer.style.display = 'none';
+            }, 5000);
+        }
+
+        // Load all categories from the API
+        async function loadCategories() {
+            showLoading();
+            
+            try {
+                const response = await fetch(API_ENDPOINTS.GET_CATEGORIES);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load categories: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderCategories(data.categories);
+                } else {
+                    throw new Error(data.message || 'Failed to load categories');
+                }
+            } catch (error) {
+                console.error('Error loading categories:', error);
+                showError(`Error loading categories: ${error.message}`);
+                
+                // Render empty state
+                renderCategories([]);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Update the renderCategories function to properly display icons
+function renderCategories(categoriesToRender) {
+    categoriesContainer.innerHTML = '';
+    
+    if (!categoriesToRender || categoriesToRender.length === 0) {
+        categoriesContainer.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 20px;">
+                    No categories found. Add a new category to get started.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    categoriesToRender.forEach(category => {
+        const row = document.createElement('tr');
+        
+        // Determine how to display the icon
+        let iconDisplay;
+        if (!category.icon) {
+            iconDisplay = '📋'; // Default icon
+        } else if (category.icon.startsWith('http')) {
+            // It's a URL, display as image
+            iconDisplay = `<img src="${category.icon}" alt="${category.name} icon" style="width: 24px; height: 24px; object-fit: contain;">`;
+        } else {
+            // It's probably an emoji
+            iconDisplay = category.icon;
+        }
+        
+        row.innerHTML = `
+            <td>${category.id}</td>
+            <td>
+                <div style="display: flex; align-items: center;">
+                    <span style="font-size: 20px; margin-right: 8px;">${iconDisplay}</span>
+                    ${category.name}
+                </div>
+            </td>
+            <td>${category.description}</td>
+            <td>${category.services_count || 0}</td>
+            <td>
+                <span class="badge" style="background-color: ${category.status === 'active' ? '#4caf50' : '#f44336'}">
+                    ${category.status.charAt(0).toUpperCase() + category.status.slice(1)}
+                </span>
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button class="edit-btn" data-id="${category.id}">Edit</button>
+                    <button class="delete-btn" data-id="${category.id}">Delete</button>
+                </div>
+            </td>
+        `;
+        categoriesContainer.appendChild(row);
+    });
+
+    // Add event listeners to action buttons
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const categoryId = parseInt(this.getAttribute('data-id'));
+            editCategory(categoryId);
+        });
+    });
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const categoryId = parseInt(this.getAttribute('data-id'));
+            showDeleteConfirmation(categoryId);
+        });
+    });
+}
+
+        // Show modal for adding a new category
+        function showAddCategoryModal() {
+            modalTitle.textContent = 'Add New Category';
+            categoryIdInput.value = '';
+            categoryForm.reset();
+            categoryModal.style.display = 'block';
+        }
+
+        // Show modal for editing a category
+        async function editCategory(categoryId) {
+            showLoading();
+            
+            try {
+                const response = await fetch(`${API_ENDPOINTS.GET_CATEGORIES}/${categoryId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load category: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.category) {
+                    const category = data.category;
+                    modalTitle.textContent = 'Edit Category';
+                    categoryIdInput.value = category.id;
+                    categoryNameInput.value = category.name;
+                    categoryDescriptionInput.value = category.description;
+                    categoryStatusInput.value = category.status;
+                    categoryIconInput.value = category.icon || '';
+                    categoryModal.style.display = 'block';
+                } else {
+                    throw new Error(data.message || 'Failed to load category');
+                }
+            } catch (error) {
+                console.error('Error loading category for edit:', error);
+                showError(`Error loading category: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Hide the category modal
+        function hideModal() {
+            categoryModal.style.display = 'none';
+            clearValidationErrors();
+        }
+
+        // Hide the delete modal
+        function hideDeleteModal() {
+            deleteModal.style.display = 'none';
+        }
+
+        // Show logout confirmation modal
+        function showLogoutModal() {
+            logoutModal.style.display = 'block';
+        }
+
+        // Hide the logout modal
+        function hideLogoutModal() {
+            logoutModal.style.display = 'none';
+        }
+
+        // Logout functionality
+        function logout() {
+            // In a real app, this would call an API endpoint to invalidate the session
+            currentUser = null;
+            
+            // Redirect to login page (in a real app)
+            alert('You have been logged out successfully.');
+            // window.location.href = '/login.html';
+            
+            // Update UI for demo
+            usernameDisplay.textContent = 'Guest User';
+            userAvatar.textContent = 'G';
+            
+            // Close the logout modal
+            hideLogoutModal();
+        }
+
+        // Clear validation errors
+        function clearValidationErrors() {
+            document.querySelectorAll('.error-message').forEach(errorMsg => {
+                errorMsg.style.display = 'none';
+            });
+        }
+
+        // Validate the category form
+        function validateCategoryForm() {
+            let isValid = true;
+            
+            // Validate name
+            if (!categoryNameInput.value.trim()) {
+                document.getElementById('name-error').style.display = 'block';
+                isValid = false;
+            } else {
+                document.getElementById('name-error').style.display = 'none';
+            }
+            
+            // Validate description
+            if (!categoryDescriptionInput.value.trim()) {
+                document.getElementById('description-error').style.display = 'block';
+                isValid = false;
+            } else {
+                document.getElementById('description-error').style.display = 'none';
+            }
+            
+            return isValid;
+        }
+
+        // Update the saveCategory function to better handle image URLs
+async function saveCategory(event) {
+    event.preventDefault();
+    
+    // Validate form
+    if (!validateCategoryForm()) {
+        return;
+    }
+    
+    const categoryId = categoryIdInput.value ? parseInt(categoryIdInput.value) : null;
+    const iconValue = categoryIconInput.value.trim();
+    
+    // Create the category data object
+    const categoryData = {
+        name: categoryNameInput.value.trim(),
+        description: categoryDescriptionInput.value.trim(),
+        status: categoryStatusInput.value,
+        icon: iconValue || '📋'
+    };
+    
+    // Log the data being sent
+    console.log('Saving category with data:', categoryData);
+    
+    showLoading();
+    
+    try {
+        let url, method;
+        
+        if (categoryId) {
+            // Update existing category
+            url = `${API_ENDPOINTS.UPDATE_CATEGORY}/${categoryId}`;
+            method = 'PUT';
+        } else {
+            // Add new category
+            url = API_ENDPOINTS.CREATE_CATEGORY;
+            method = 'POST';
+        }
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(categoryData)
+        });
+        
+        const responseData = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(responseData.message || `Failed to save category: ${response.status}`);
+        }
+        
+        if (responseData.success) {
+            // Re-load all categories to refresh the table
+            await loadCategories();
+            hideModal();
+            showNotification(categoryId ? 'Category updated successfully!' : 'Category added successfully!');
+        } else {
+            throw new Error(responseData.message || 'Failed to save category');
+        }
+    } catch (error) {
+        console.error('Error saving category:', error);
+        showError(`Error saving category: ${error.message}`);
+    } finally {
+        hideLoading();
+    }
+}
+
+        // Show delete confirmation modal
+        function showDeleteConfirmation(categoryId) {
+            confirmDeleteButton.setAttribute('data-id', categoryId);
+            deleteModal.style.display = 'block';
+        }
+
+        // Delete a category
+        async function deleteCategory() {
+            const categoryId = parseInt(confirmDeleteButton.getAttribute('data-id'));
+            
+            showLoading();
+            hideDeleteModal();
+            
+            try {
+                const response = await fetch(`${API_ENDPOINTS.DELETE_CATEGORY}/${categoryId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to delete category: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Re-load all categories to refresh the table
+                    await loadCategories();
+                    showNotification('Category deleted successfully!');
+                } else {
+                    throw new Error(data.message || 'Failed to delete category');
+                }
+            } catch (error) {
+                console.error('Error deleting category:', error);
+                showError(`Error deleting category: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Search categories
+        async function searchCategories() {
+            const searchTerm = searchInput.value.trim();
+            
+            if (!searchTerm) {
+                // If search is empty, load all categories
+                loadCategories();
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                // You can either implement a dedicated search endpoint or filter on the client side
+                // Here we'll use the search endpoint
+                const response = await fetch(`${API_ENDPOINTS.SEARCH_CATEGORIES}?term=${encodeURIComponent(searchTerm)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Search failed: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderCategories(data.categories);
+                } else {
+                    throw new Error(data.message || 'Search failed');
+                }
+            } catch (error) {
+                console.error('Error searching categories:', error);
+                showError(`Error searching categories: ${error.message}`);
+                
+                // If search fails, fall back to all categories
+                loadCategories();
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Show notification
+        function showNotification(message) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.right = '20px';
+            notification.style.backgroundColor = '#4caf50';
+            notification.style.color = 'white';
+            notification.style.padding = '12px 20px';
+            notification.style.borderRadius = '4px';
+            notification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+            notification.style.zIndex = '1000';
+            
+            // Add to document
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 500);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
