@@ -126,10 +126,10 @@ class LoginUI {
                 targetPage = "../src/homePage.html";
                 break;
             case 'user_admin':
-                targetPage = "../src/user-management.html";
+                targetPage = "../src/user_admin/navigation.html";
                 break;
             case 'platform_manager':
-                targetPage = "../src/platform-manager.html";
+                targetPage = "../src/platform_management/homePage_PM.html";
                 break;
             default:
                 console.log("Role not recognized, using default page. Received:", role);

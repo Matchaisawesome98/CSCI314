@@ -2656,6 +2656,357 @@ async function determineIdField(connection) {
     }
 }
 
+//PLATFORM MANAGER APIS
+// Get all categories
+app.get('/api/categories', async (req, res) => {
+    try {
+        const connection = await mysql2Promise.createConnection(dbConfig);
+        const [rows] = await connection.execute('SELECT * FROM categories ORDER BY category_code ASC');
+        await connection.end();
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error('Database error when fetching categories:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch categories',
+            error: error.message
+        });
+    }
+});
+
+// Get a specific category by code
+app.get('/api/categories/:categoryCode', async (req, res) => {
+    try {
+        const { categoryCode } = req.params;
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+        const [rows] = await connection.execute(
+            'SELECT * FROM categories WHERE category_code = ?',
+            [categoryCode]
+        );
+        await connection.end();
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: rows[0]
+        });
+    } catch (error) {
+        console.error('Database error when fetching category:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch category',
+            error: error.message
+        });
+    }
+});
+
+// Create a new category
+app.post('/api/categories', async (req, res) => {
+    try {
+        console.log('Received request to create category:', req.body);
+        const { category_name, description } = req.body;
+
+        // Validate required fields
+        if (!category_name) {
+            console.log('Validation failed: Missing category name');
+            return res.status(400).json({
+                success: false,
+                message: 'Category name is required'
+            });
+        }
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Check if category name already exists
+        const [nameCheck] = await connection.execute(
+            'SELECT * FROM categories WHERE category_name = ?',
+            [category_name]
+        );
+
+        if (nameCheck.length > 0) {
+            console.log('Category name already exists:', category_name);
+            await connection.end();
+            return res.status(409).json({
+                success: false,
+                message: 'A category with this name already exists'
+            });
+        }
+
+        // Generate a new category code
+        const [maxCodeResult] = await connection.execute(
+            'SELECT MAX(CAST(SUBSTRING(category_code, 4) AS UNSIGNED)) AS max_code FROM categories WHERE category_code LIKE "CAT%"'
+        );
+
+        let nextCode = 1;
+        if (maxCodeResult[0].max_code) {
+            nextCode = parseInt(maxCodeResult[0].max_code) + 1;
+        }
+
+        const category_code = `CAT${nextCode.toString().padStart(3, '0')}`;
+        console.log('Generated new category code:', category_code);
+
+        // Insert the new category WITH the category_code
+        await connection.execute(
+            'INSERT INTO categories (category_code, category_name, description) VALUES (?, ?, ?)',
+            [category_code, category_name, description || null]
+        );
+
+        // Get the newly created category
+        const [newCategory] = await connection.execute(
+            'SELECT * FROM categories WHERE category_code = ?',
+            [category_code]
+        );
+
+        await connection.end();
+        console.log('Category created successfully:', newCategory[0]);
+
+        res.status(201).json({
+            success: true,
+            message: 'Category created successfully',
+            data: newCategory[0]
+        });
+    } catch (error) {
+        console.error('Database error when creating category:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create category',
+            error: error.message
+        });
+    }
+});
+
+// Update a category
+app.put('/api/categories/:categoryCode', async (req, res) => {
+    try {
+        const { categoryCode } = req.params;
+        const { category_name, description } = req.body;
+
+        // Validate required fields
+        if (!category_name) {
+            return res.status(400).json({
+                success: false,
+                message: 'Category name is required'
+            });
+        }
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Check if category exists
+        const [categoryCheck] = await connection.execute(
+            'SELECT * FROM categories WHERE category_code = ?',
+            [categoryCode]
+        );
+
+        if (categoryCheck.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        // Check if new name conflicts with an existing category
+        if (category_name !== categoryCheck[0].category_name) {
+            const [nameCheck] = await connection.execute(
+                'SELECT * FROM categories WHERE category_name = ? AND category_code != ?',
+                [category_name, categoryCode]
+            );
+
+            if (nameCheck.length > 0) {
+                await connection.end();
+                return res.status(409).json({
+                    success: false,
+                    message: 'A category with this name already exists'
+                });
+            }
+        }
+
+        // Update the category
+        await connection.execute(
+            'UPDATE categories SET category_name = ?, description = ? WHERE category_code = ?',
+            [category_name, description || null, categoryCode]
+        );
+
+        // Get the updated category
+        const [updatedCategory] = await connection.execute(
+            'SELECT * FROM categories WHERE category_code = ?',
+            [categoryCode]
+        );
+
+        await connection.end();
+
+        res.json({
+            success: true,
+            message: 'Category updated successfully',
+            data: updatedCategory[0]
+        });
+    } catch (error) {
+        console.error('Database error when updating category:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update category',
+            error: error.message
+        });
+    }
+});
+
+// Delete a category
+app.delete('/api/categories/:categoryCode', async (req, res) => {
+    try {
+        const { categoryCode } = req.params;
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Check if category exists
+        const [categoryCheck] = await connection.execute(
+            'SELECT * FROM categories WHERE category_code = ?',
+            [categoryCode]
+        );
+
+        if (categoryCheck.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        // Check if category is being used in any listings
+        const [listingsCheck] = await connection.execute(
+            'SELECT COUNT(*) as count FROM listings WHERE category_name = ?',
+            [categoryCheck[0].category_name]
+        );
+
+        if (listingsCheck[0].count > 0) {
+            await connection.end();
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot delete category as it is being used in listings'
+            });
+        }
+
+        // Delete the category
+        await connection.execute(
+            'DELETE FROM categories WHERE category_code = ?',
+            [categoryCode]
+        );
+
+        await connection.end();
+
+        res.json({
+            success: true,
+            message: 'Category deleted successfully'
+        });
+    } catch (error) {
+        console.error('Database error when deleting category:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete category',
+            error: error.message
+        });
+    }
+});
+
+// Search categories
+app.get('/api/categories/search', async (req, res) => {
+    try {
+        const { query } = req.query;
+
+        // If no query provided, return all categories
+        if (!query || query.trim() === '') {
+            const connection = await mysql2Promise.createConnection(dbConfig);
+            const [rows] = await connection.execute('SELECT * FROM categories ORDER BY category_code ASC');
+            await connection.end();
+
+            return res.json({
+                success: true,
+                data: rows
+            });
+        }
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Search in code, name and description
+        const [rows] = await connection.execute(
+            'SELECT * FROM categories WHERE category_code LIKE ? OR category_name LIKE ? OR description LIKE ? ORDER BY category_code ASC',
+            [`%${query}%`, `%${query}%`, `%${query}%`]
+        );
+
+        await connection.end();
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error('Database error when searching categories:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to search categories',
+            error: error.message
+        });
+    }
+});
+
+// Check if category is in use
+app.get('/api/categories/:categoryCode/in-use', async (req, res) => {
+    try {
+        const { categoryCode } = req.params;
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // First get the category to find its name
+        const [categoryCheck] = await connection.execute(
+            'SELECT * FROM categories WHERE category_code = ?',
+            [categoryCode]
+        );
+
+        if (categoryCheck.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        const categoryName = categoryCheck[0].category_name;
+
+        // Check if category name is being used in any listings
+        const [listingsCheck] = await connection.execute(
+            'SELECT COUNT(*) as count FROM listings WHERE category_name = ?',
+            [categoryName]
+        );
+
+        await connection.end();
+
+        const isInUse = listingsCheck[0].count > 0;
+
+        res.json({
+            success: true,
+            isInUse: isInUse,
+            count: listingsCheck[0].count
+        });
+    } catch (error) {
+        console.error('Database error when checking if category is in use:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to check if category is in use',
+            error: error.message
+        });
+    }
+});
+
 // Test endpoint
 app.get('/test', (req, res) => {
     res.json({ message: 'Server is running' });

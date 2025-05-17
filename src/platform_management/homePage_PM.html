@@ -545,8 +545,6 @@
                     <button class="search-btn" id="search-btn">🔍</button>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <button class="btn" id="add-category-btn">+ Add Category</button>
-                    <button class="btn btn-secondary" id="generate-report-btn" style="margin-left: 10px;">Generate Reports</button>
                     <div class="user-info">
                         <div class="user-avatar" id="user-avatar">A</div>
                         <span class="user-name" id="username-display">Admin User</span>
@@ -585,11 +583,9 @@
             <table class="categories-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>Category Code</th>
                         <th>Category Name</th>
                         <th>Description</th>
-                        <th>Services Count</th>
-                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -669,39 +665,29 @@
 
     <!-- Add/Edit Category Modal -->
     <div id="category-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" id="close-modal">&times;</span>
-            <h2 id="modal-title">Add New Category</h2>
-            <form id="category-form">
-                <input type="hidden" id="category-id">
-                <div class="form-group">
-                    <label class="form-label" for="category-name">Category Name</label>
-                    <input type="text" class="form-input" id="category-name" required>
-                    <div class="error-message" id="name-error">Please enter a valid category name</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="category-description">Description</label>
-                    <textarea class="form-textarea" id="category-description" required></textarea>
-                    <div class="error-message" id="description-error">Please enter a description</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="category-status">Status</label>
-                    <select class="form-input" id="category-status" required>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="category-icon">Icon (Emoji or URL)</label>
-                    <input type="text" class="form-input" id="category-icon" placeholder="🧹 or https://example.com/icon.png">
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="cancel-button">Cancel</button>
-                    <button type="submit" class="btn" id="save-button">Save Category</button>
-                </div>
-            </form>
-        </div>
+    <div class="modal-content">
+        <span class="close-button" id="close-modal">&times;</span>
+        <h2 id="modal-title">Add New Category</h2>
+        <form id="category-form">
+            <input type="hidden" id="category-id">
+            <div class="form-group">
+                <label class="form-label" for="category-name">Category Name</label>
+                <input type="text" class="form-input" id="category-name" required>
+                <div class="error-message" id="name-error">Please enter a valid category name</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="category-description">Description</label>
+                <textarea class="form-textarea" id="category-description" required></textarea>
+                <div class="error-message" id="description-error">Please enter a description</div>
+            </div>
+            <!-- Removed status and icon fields -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancel-button">Cancel</button>
+                <button type="submit" class="btn" id="save-button">Save Category</button>
+            </div>
+        </form>
     </div>
+</div>
 
     <!-- Delete Confirmation Modal -->
     <div id="delete-modal" class="modal">
@@ -729,6 +715,7 @@
         </div>
     </div>
 
-
+<script src="platformManager.js"></script>
+<script src="platformManagerStats.js"></script>
 </body>
 </html>
