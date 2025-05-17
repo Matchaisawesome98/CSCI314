@@ -735,20 +735,15 @@ class searchUI {
     constructor() {
         this.initDomElements();
         this.setupEventListeners();
-
-        // Cache for all services (will be populated when services are loaded)
-        this.allServices = [];
+        this.controller = new serviceSearchController();
 
         // Determine which page we're on
         this.isCleanerListingsPage = window.location.pathname.includes('cleanerListings.html');
-
-        // Load and cache all services data (this happens only once)
-        this.loadAllServices();
     }
 
     initDomElements() {
         this.searchInput = document.getElementById('search-input');
-        this.searchBtn = document.getElementById('search-btn'); // Keep reference but don't attach event
+        this.searchBtn = document.getElementById('search-btn');
         this.servicesContainer = document.getElementById('services-container');
     }
 
@@ -761,98 +756,113 @@ class searchUI {
                 }
             });
         }
-    }
 
-    // Load all services data once and cache it
-    async loadAllServices() {
-        try {
-            // For user listings page - get only user's listings
-            if (this.isCleanerListingsPage) {
-                const userId = localStorage.getItem('currentUserId');
-                if (!userId) return;
-
-                // Get all services
-                const response = await fetch(`http://localhost:3000/api/listings`);
-                const result = await response.json();
-
-                if (result.success) {
-                    // Filter to only include user's listings
-                    this.allServices = result.data.filter(service =>
-                        service.user_id === userId
-                    );
-                    console.log(`Cached ${this.allServices.length} user services for searching`);
+        // Listen for input changes to detect clearing via the "x" button
+        this.searchInput.addEventListener('input', (e) => {
+                // If input becomes empty (cleared), reload original listings
+                if (e.target.value.trim() === '') {
+                    this.handleClearSearch();
                 }
-            }
-            // For home page - get all listings
-            else {
-                const response = await fetch(`http://localhost:3000/api/listings`);
-                const result = await response.json();
+            });
 
-                if (result.success) {
-                    this.allServices = result.data;
-                    console.log(`Cached ${this.allServices.length} services for searching`);
-                }
-            }
-        } catch (error) {
-            console.error('Error loading services for search:', error);
+        // Add click handler for search button
+        if (this.searchBtn) {
+            this.searchBtn.addEventListener('click', () => this.handleSearch());
         }
     }
 
-    handleSearch() {
-    const query = this.searchInput?.value?.trim().toLowerCase() || '';
+    async handleSearch() {
+        const query = this.searchInput?.value?.trim() || '';
 
-    // Don't search if query is empty
-    if (!query) {
-        return;
+        // Don't search if query is empty
+        if (!query) {
+            return;
+        }
+
+        console.log('Search initiated for query:', query);
+
+        // Show loading state
+        this.showLoadingState();
+
+        try {
+            // Set flag to prevent shortlist initialization during search
+            window.preventShortlistInit = true;
+
+            // Get current user ID if on cleaner listings page
+            const userId = this.isCleanerListingsPage ? localStorage.getItem('currentUserId') : null;
+
+            // Call the controller to search via API
+            const results = await this.controller.searchListings(query, userId);
+
+            // Reset flag to allow normal initialization
+            window.preventShortlistInit = false;
+
+            // Display the search results
+            this.displayResults(results, this.isCleanerListingsPage);
+
+            // If on cleaner listings page, reattach event listeners for edit/delete buttons
+            if (this.isCleanerListingsPage) {
+                this.reattachManagementEventListeners();
+            }
+        } catch (error) {
+            console.error('Error performing search:', error);
+            this.servicesContainer.innerHTML = '<p class="search-message">Error: Failed to search services. Please try again.</p>';
+            window.preventShortlistInit = false;
+        }
     }
 
-    console.log('Search initiated for query:', query);
+    handleClearSearch() {
+        console.log('Search cleared, restoring original listings');
 
-    // Show loading state
-    this.showLoadingState();
+        // Clear the search input just in case it wasn't already cleared
+        if (this.searchInput) {
+            this.searchInput.value = '';
+        }
 
-    // If data hasn't been cached yet, try to load it
-    if (!this.allServices || this.allServices.length === 0) {
-        this.loadAllServices().then(() => {
-            this.performClientSideSearch(query);
-        });
-    } else {
-        // Perform the search immediately on cached data
-        this.performClientSideSearch(query);
+        // Show loading indicator
+        if (this.servicesContainer) {
+            this.servicesContainer.innerHTML = '<p class="search-loading">Loading listings...</p>';
+        }
+
+        // Remove any search results counter
+        const existingCounter = document.querySelector('.search-results-counter');
+        if (existingCounter) {
+            existingCounter.remove();
+        }
+
+        // Restore the original section title if it was modified
+        const titleContainer = document.querySelector('.section-title').parentNode;
+        if (titleContainer && titleContainer.style.display === 'flex') {
+            // This likely means we replaced the title with a flex container
+            const originalTitle = titleContainer.querySelector('.section-title');
+            if (originalTitle) {
+                titleContainer.parentNode.replaceChild(originalTitle, titleContainer);
+            }
+        }
+
+        // Use the appropriate method to reload listings based on the page
+        if (this.isCleanerListingsPage) {
+            // For cleaner listings page, reload user listings
+            if (window.existingReadPage) {
+                window.existingReadPage.displayUserListings();
+            } else {
+                const servicePage = new readServicePage();
+                servicePage.displayUserListings();
+            }
+        } else {
+            // For home page, reload all listings
+            if (window.originalLoadServices) {
+                window.originalLoadServices();
+            } else if (typeof loadServices === 'function') {
+                loadServices();
+            } else if (window.existingReadPage) {
+                window.existingReadPage.displayServices();
+            } else {
+                const servicePage = new readServicePage();
+                servicePage.displayServices();
+            }
+        }
     }
-}
-
-    performClientSideSearch(query) {
-    console.log('Performing search for:', query);
-
-    // Convert query to lowercase for case-insensitive search
-    const searchText = query.toLowerCase();
-
-    // Log all services being searched through for debugging
-    console.log(`Searching through ${this.allServices.length} services for "${searchText}"`);
-
-    // Enhanced search: check title, description, and category
-    const results = this.allServices.filter(service => {
-        const title = (service.title || '').toLowerCase();
-        const description = (service.description || '').toLowerCase();
-        const category = (service.category_name || service.category || '').toLowerCase();
-
-        return title.includes(searchText) ||
-               description.includes(searchText) ||
-               category.includes(searchText);
-    });
-
-    console.log(`Search found ${results.length} results`);
-
-    // Reset flag to allow normal initialization
-    window.preventShortlistInit = false;
-
-    // Display the filtered results
-    this.displayResults({
-        success: true,
-        data: results
-    }, this.isCleanerListingsPage);
-}
 
     showLoadingState() {
         // Simple loading indicator
@@ -862,156 +872,155 @@ class searchUI {
     }
 
     displayResults(result, isUserListings) {
-    if (!this.servicesContainer) {
-        console.error('Services container not found');
-        return;
-    }
-
-    // Clear existing content
-    this.servicesContainer.innerHTML = '';
-
-    // Clear any existing results counter
-    const existingCounter = document.querySelector('.search-results-counter');
-    if (existingCounter) {
-        existingCounter.remove();
-    }
-
-    // Handle errors or no results
-    if (!result.success) {
-        this.servicesContainer.innerHTML = `<p class="search-message">Error: Something went wrong</p>`;
-        return;
-    }
-
-    if (!result.data || result.data.length === 0) {
-        const message = isUserListings
-            ? 'No matching listings found in your services. Try different keywords.'
-            : 'No matching listings found. Try different keywords.';
-
-        this.servicesContainer.innerHTML = `<p class="search-message">${message}</p>`;
-        return;
-    }
-
-    // Get the query for display purposes
-    const query = this.searchInput?.value?.trim() || '';
-
-    // NEW CODE: Instead of creating a new results counter element,
-    // find and update the section title to include search results info
-    if (query) {
-        // Find the section title that says "Cleaning Services"
-        const sectionTitle = document.querySelector('.section-title');
-        if (sectionTitle) {
-            // Create a container to hold both the title and the search results counter
-            const titleContainer = document.createElement('div');
-            titleContainer.style.display = 'flex';
-            titleContainer.style.justifyContent = 'space-between';
-            titleContainer.style.alignItems = 'center';
-            titleContainer.style.width = '100%';
-
-            // Clone the existing title to preserve its styling
-            const titleClone = sectionTitle.cloneNode(true);
-
-            // Create the results counter
-            const resultsCount = document.createElement('div');
-            resultsCount.className = 'search-results-counter';
-            resultsCount.style.fontSize = '16px';
-            resultsCount.innerHTML = `Found <strong>${result.data.length}</strong> ${result.data.length === 1 ? 'result' : 'results'} for "${this.escapeHtml(query)}" <button id="reset-search" style="margin-left: 10px; padding: 3px 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">Clear</button>`;
-
-            // Add both elements to the container
-            titleContainer.appendChild(titleClone);
-            titleContainer.appendChild(resultsCount);
-
-            // Replace the original section title with our new container
-            sectionTitle.parentNode.replaceChild(titleContainer, sectionTitle);
-
-            // Add clear button handler
-            document.getElementById('reset-search').addEventListener('click', () => {
-                this.searchInput.value = '';
-                window.location.reload();
-            });
-        } else {
-            // Fallback if section title not found - add counter before services container
-            const resultsCount = document.createElement('div');
-            resultsCount.className = 'search-results-counter';
-            resultsCount.style.marginTop = '10px';
-            resultsCount.style.marginBottom = '10px';
-            resultsCount.style.fontWeight = 'bold';
-            resultsCount.innerHTML = `Found <strong>${result.data.length}</strong> ${result.data.length === 1 ? 'result' : 'results'} for "${this.escapeHtml(query)}" <button id="reset-search" style="margin-left: 10px; padding: 3px 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">Clear</button>`;
-
-            this.servicesContainer.parentNode.insertBefore(resultsCount, this.servicesContainer);
-
-            // Add clear button handler
-            document.getElementById('reset-search').addEventListener('click', () => {
-                this.searchInput.value = '';
-                window.location.reload();
-            });
-        }
-    }
-
-    // Apply the services-grid class to the existing container
-    this.servicesContainer.classList.add('services-grid');
-
-    try {
-        // Get template
-        const template = document.getElementById('service-card-template');
-        if (!template) {
-            throw new Error('Service card template not found');
+        if (!this.servicesContainer) {
+            console.error('Services container not found');
+            return;
         }
 
-        // Create cards for each result
-        result.data.forEach(service => {
-            const card = document.importNode(template.content, true);
+        // Clear existing content
+        this.servicesContainer.innerHTML = '';
 
-            // Set values
-            card.querySelector('.service-image').src = service.image_path || 'https://placehold.co/600x400?text=Cleaning+Service';
-            card.querySelector('.service-title').textContent = service.title || 'Unnamed Service';
-            card.querySelector('.service-price').textContent = `S$${parseFloat(service.price || 0).toFixed(2)}`;
-            card.querySelector('.service-description').textContent = service.description || 'No description available';
-            card.querySelector('.tag').textContent = service.category_name || service.category || 'General';
+        // Clear any existing results counter
+        const existingCounter = document.querySelector('.search-results-counter');
+        if (existingCounter) {
+            existingCounter.remove();
+        }
 
-            // Set provider name if element exists
-            const providerElement = card.querySelector('.provider-name');
-            if (providerElement) {
-                providerElement.textContent = 'by ' + (service.provider_name || `Provider ${service.user_id || 'Unknown'}`);
+        // Handle errors or no results
+        if (!result.success) {
+            this.servicesContainer.innerHTML = `<p class="search-message">Error: ${result.error || 'Something went wrong'}</p>`;
+            return;
+        }
+
+        if (!result.data || result.data.length === 0) {
+            const message = isUserListings
+                ? 'No matching listings found in your services. Try different keywords.'
+                : 'No matching listings found. Try different keywords.';
+
+            this.servicesContainer.innerHTML = `<p class="search-message">${message}</p>`;
+            return;
+        }
+
+        // Get the query for display purposes
+        const query = this.searchInput?.value?.trim() || '';
+
+        // Update the section title to include search results info
+        if (query) {
+            // Find the section title that says "Cleaning Services"
+            const sectionTitle = document.querySelector('.section-title');
+            if (sectionTitle) {
+                // Create a container to hold both the title and the search results counter
+                const titleContainer = document.createElement('div');
+                titleContainer.style.display = 'flex';
+                titleContainer.style.justifyContent = 'space-between';
+                titleContainer.style.alignItems = 'center';
+                titleContainer.style.width = '100%';
+
+                // Clone the existing title to preserve its styling
+                const titleClone = sectionTitle.cloneNode(true);
+
+                // Create the results counter
+                const resultsCount = document.createElement('div');
+                resultsCount.className = 'search-results-counter';
+                resultsCount.style.fontSize = '16px';
+                resultsCount.innerHTML = `Found <strong>${result.data.length}</strong> ${result.data.length === 1 ? 'result' : 'results'} for "${this.escapeHtml(query)}" <button id="reset-search" style="margin-left: 10px; padding: 3px 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">Clear</button>`;
+
+                // Add both elements to the container
+                titleContainer.appendChild(titleClone);
+                titleContainer.appendChild(resultsCount);
+
+                // Replace the original section title with our new container
+                sectionTitle.parentNode.replaceChild(titleContainer, sectionTitle);
+
+                // Add clear button handler
+                document.getElementById('reset-search').addEventListener('click', () => {
+                    this.searchInput.value = '';
+                    window.location.reload();
+                });
+            } else {
+                // Fallback if section title not found - add counter before services container
+                const resultsCount = document.createElement('div');
+                resultsCount.className = 'search-results-counter';
+                resultsCount.style.marginTop = '10px';
+                resultsCount.style.marginBottom = '10px';
+                resultsCount.style.fontWeight = 'bold';
+                resultsCount.innerHTML = `Found <strong>${result.data.length}</strong> ${result.data.length === 1 ? 'result' : 'results'} for "${this.escapeHtml(query)}" <button id="reset-search" style="margin-left: 10px; padding: 3px 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">Clear</button>`;
+
+                this.servicesContainer.parentNode.insertBefore(resultsCount, this.servicesContainer);
+
+                // Add clear button handler
+                document.getElementById('reset-search').addEventListener('click', () => {
+                    this.searchInput.value = '';
+                    window.location.reload();
+                });
+            }
+        }
+
+        // Apply the services-grid class to the existing container
+        this.servicesContainer.classList.add('services-grid');
+
+        try {
+            // Get template
+            const template = document.getElementById('service-card-template');
+            if (!template) {
+                throw new Error('Service card template not found');
             }
 
-            // Set up buttons depending on page type
-            const cardButtons = card.querySelector('.card-buttons');
-            if (cardButtons) {
-                if (isUserListings) {
-                    // User's own listings - show edit/delete
-                    cardButtons.innerHTML = `
-                        <button class="btn card-btn edit-service-btn" data-id="${service.listing_id || service.id || '0'}">Edit</button>
-                        <button class="btn card-btn btn-secondary delete-service-btn" data-id="${service.listing_id || service.id || '0'}">Delete</button>
-                    `;
-                } else {
-                    // Main page - show view details
-                    const viewDetailsBtn = cardButtons.querySelector('.view-details-btn');
-                    if (viewDetailsBtn) {
-                        viewDetailsBtn.setAttribute('data-id', service.listing_id || service.id || '0');
+            // Create cards for each result
+            result.data.forEach(service => {
+                const card = document.importNode(template.content, true);
+
+                // Set values
+                card.querySelector('.service-image').src = service.image_path || 'https://placehold.co/600x400?text=Cleaning+Service';
+                card.querySelector('.service-title').textContent = service.title || 'Unnamed Service';
+                card.querySelector('.service-price').textContent = `S$${parseFloat(service.price || 0).toFixed(2)}`;
+                card.querySelector('.service-description').textContent = service.description || 'No description available';
+                card.querySelector('.tag').textContent = service.category_name || service.category || 'General';
+
+                // Set provider name if element exists
+                const providerElement = card.querySelector('.provider-name');
+                if (providerElement) {
+                    providerElement.textContent = 'by ' + (service.provider_name || `Provider ${service.user_id || 'Unknown'}`);
+                }
+
+                // Set up buttons depending on page type
+                const cardButtons = card.querySelector('.card-buttons');
+                if (cardButtons) {
+                    if (isUserListings) {
+                        // User's own listings - show edit/delete
+                        cardButtons.innerHTML = `
+                            <button class="btn card-btn edit-service-btn" data-id="${service.listing_id || service.id || '0'}">Edit</button>
+                            <button class="btn card-btn btn-secondary delete-service-btn" data-id="${service.listing_id || service.id || '0'}">Delete</button>
+                        `;
+                    } else {
+                        // Main page - show view details
+                        const viewDetailsBtn = cardButtons.querySelector('.view-details-btn');
+                        if (viewDetailsBtn) {
+                            viewDetailsBtn.setAttribute('data-id', service.listing_id || service.id || '0');
+                        }
                     }
                 }
-            }
 
-            // Add directly to servicesContainer
-            this.servicesContainer.appendChild(card);
-        });
+                // Add directly to servicesContainer
+                this.servicesContainer.appendChild(card);
+            });
 
-        // Initialize shortlist after rendering
-        setTimeout(() => {
-            try {
-                if (typeof shortListUI !== 'undefined' && !isUserListings) {
-                    console.log('Initializing shortlist UI after search');
-                    new shortListUI();
+            // Initialize shortlist after rendering
+            setTimeout(() => {
+                try {
+                    if (typeof shortListUI !== 'undefined' && !isUserListings) {
+                        console.log('Initializing shortlist UI after search');
+                        new shortListUI();
+                    }
+                } catch (error) {
+                    console.error('Error initializing shortlist:', error);
                 }
-            } catch (error) {
-                console.error('Error initializing shortlist:', error);
-            }
-        }, 300);
-    } catch (error) {
-        console.error('Error rendering search results:', error);
-        this.servicesContainer.innerHTML = '<p class="search-message">Error displaying search results. Please try again.</p>';
+            }, 300);
+        } catch (error) {
+            console.error('Error rendering search results:', error);
+            this.servicesContainer.innerHTML = '<p class="search-message">Error displaying search results. Please try again.</p>';
+        }
     }
-}
 
     reattachManagementEventListeners() {
         // Reattach event listeners to edit/delete buttons after search
@@ -1049,97 +1058,44 @@ class searchUI {
         div.textContent = text;
         return div.innerHTML;
     }
-    // New static initializer for the searchUI class
-static {
-    searchUI.initializeSearchOnPage();
-}
 
-// Add this static method to the searchUI class
-static initializeSearchOnPage() {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInstance = new searchUI();
-            window.searchInstance = searchInstance;
-
-            // Cache an instance of readServicePage for reuse
-            window.existingReadPage = new readServicePage();
-
-            // Add event listener for search input enter key and clear
+    // Moving the DOM ready event code inside the boundary class as requested
+    // This is a static method that will be called when the class is loaded
+    static {
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get the search input element
             const searchInput = document.getElementById('search-input');
+
             if (searchInput) {
-                // Update placeholder to indicate press Enter to search
                 searchInput.placeholder = "Search for cleaning services... (press Enter to search)";
 
-                // Add clear functionality
+                // Optional: Add clear button functionality
                 searchInput.addEventListener('input', function() {
                     if (this.value.trim() === '') {
-                        // If search is cleared, restore original listings
-                        if (window.existingReadPage) {
-                            const isUserListingsPage = window.location.pathname.includes('cleanerListings.html');
-                            if (isUserListingsPage) {
-                                window.existingReadPage.displayUserListings();
-                            } else {
-                                window.existingReadPage.displayServices();
-                            }
+                        // If cleared, restore original listings
+                        if (window.originalLoadServices) {
+                            window.originalLoadServices();
+                        } else if (typeof loadServices === 'function') {
+                            loadServices();
                         }
                     }
                 });
             }
-        });
-    } else {
-        // DOM already loaded
-        const searchInstance = new searchUI();
-        window.searchInstance = searchInstance;
 
-        // Cache an instance of readServicePage for reuse
-        window.existingReadPage = new readServicePage();
+            // Initialize search UI and save globally if needed
+            window.searchInstance = new searchUI();
+        });
     }
 }
 
-    // // Checks if a document is ready, then initialize
-    // static {
-    //     if (document.readyState === 'loading') {
-    //         document.addEventListener('DOMContentLoaded', () => new searchUI());
-    //     } else {
-    //         // DOM is already loaded
-    //         new searchUI();
-    //     }
-    // }
-
-}
-
-// Integration with HTML page:
-document.addEventListener('DOMContentLoaded', function() {
-    // Get the search input element
-    const searchInput = document.getElementById('search-input');
-
-    if (searchInput) {
-        searchInput.placeholder = "Search for cleaning services... (press Enter to search)";
-
-        // Optional: Add clear button functionality
-        searchInput.addEventListener('input', function() {
-            if (this.value.trim() === '') {
-                // If cleared, restore original listings
-                if (window.originalLoadServices) {
-                    window.originalLoadServices();
-                } else if (typeof loadServices === 'function') {
-                    loadServices();
-                }
-            }
-        });
-    }
-
-    // Initialize search UI and save globally if needed
-    window.searchInstance = new searchUI();
-});
-
-//controller for search function
+//controller for search function - uses service entity's searchServices method
 class serviceSearchController {
     constructor() {
-        this.entity = new serviceSearchEntity();
+        this.entity = new service(); // Use the existing service entity class
     }
 
     async searchListings(query, userId = null) {
+        console.log(`Controller: Searching for "${query}" with userId: ${userId}`);
         return this.entity.searchServices(query, userId);
     }
 }
@@ -1295,6 +1251,8 @@ class service{
     //search for cleaning service listings
     async searchServices(query, userId = null) {
         try {
+            console.log(`Entity: Searching for "${query}" with userId: ${userId}`);
+
             // Build the endpoint based on whether we're searching all listings or user listings
             let endpoint = `${this.apiBaseUrl}/listings/search?query=${encodeURIComponent(query || '')}`;
 
@@ -1303,18 +1261,21 @@ class service{
                 endpoint += `&userId=${encodeURIComponent(userId)}`;
             }
 
-            console.log('Searching with endpoint:', endpoint);
+            console.log('Search endpoint:', endpoint);
 
             // Make the API call to the search endpoint
             const response = await fetch(endpoint);
 
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Search API error:', errorText);
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
             const result = await response.json();
-            console.log('Search results:', result);
+            console.log('Search API results:', result);
 
+            // Return the API response directly
             return result;
         } catch (error) {
             console.error('Error searching services:', error);

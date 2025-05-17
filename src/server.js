@@ -1970,6 +1970,91 @@ app.put('/api/bookings/:bookingId/status', async (req, res) => {
     }
 });
 
+// Search bookings endpoint
+app.get('/api/bookings/search', async (req, res) => {
+    console.log('Search endpoint reached:', req.query);
+    try {
+        const { query, provider_id } = req.query;
+
+        // Validate provider_id is required
+        if (!provider_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Provider ID is required'
+            });
+        }
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Build the search query
+        let sql = `
+            SELECT 
+                b.booking_id, 
+                b.scheduled_date, 
+                b.scheduled_time, 
+                b.status,
+                l.listing_id,
+                l.title AS service_title,
+                l.description AS service_description,
+                CONCAT(u.first_name, ' ', u.last_name) AS client_name
+            FROM 
+                service_bookings b
+            JOIN 
+                listings l ON b.listing_id = l.listing_id
+            JOIN 
+                user_accounts u ON b.user_id = u.user_id
+            WHERE 
+                b.provider_id = ?
+        `;
+
+        let params = [provider_id];
+
+        // Add search conditions if query is provided
+        if (query && query.trim() !== '') {
+            sql += ` AND (
+                l.title LIKE ? OR 
+                l.description LIKE ? OR 
+                CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR
+                DATE_FORMAT(b.scheduled_date, '%W, %M %d, %Y') LIKE ? OR
+                DATE_FORMAT(b.scheduled_time, '%h:%i %p') LIKE ? OR
+                b.status LIKE ?
+            )`;
+
+            const searchParam = `%${query}%`;
+            params.push(searchParam, searchParam, searchParam, searchParam, searchParam, searchParam);
+        }
+
+        // Add order by to prioritize pending bookings and then by date
+        sql += ` ORDER BY 
+            CASE 
+                WHEN b.status = 'pending_approval' THEN 0 
+                WHEN b.status = 'approved' THEN 1 
+                WHEN b.status = 'completed' THEN 2 
+                WHEN b.status = 'cancelled' THEN 3 
+                ELSE 4 
+            END, 
+            b.scheduled_date ASC, b.scheduled_time ASC`;
+
+        // Execute the query
+        const [rows] = await connection.execute(sql, params);
+        await connection.end();
+
+        console.log(`Search found ${rows.length} bookings for provider ${provider_id} with query "${query || ''}"`);
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error('Error searching bookings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to search bookings',
+            error: error.message
+        });
+    }
+});
+
 // Get a specific booking by ID
 app.get('/api/bookings/:bookingId', async (req, res) => {
     try {
@@ -2022,6 +2107,7 @@ app.get('/api/bookings/:bookingId', async (req, res) => {
         });
     }
 });
+
 
 // Test endpoint
 app.get('/test', (req, res) => {
