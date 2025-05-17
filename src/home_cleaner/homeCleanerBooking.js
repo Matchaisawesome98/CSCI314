@@ -1094,6 +1094,3 @@ class CleanerBookingsEntity {
         }
     }
 }
-
-// Initialize the CleanerBookingsUI when the DOM is loaded
-// The static initializer in the CleanerBookingsUI class takes care of this

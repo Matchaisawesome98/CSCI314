@@ -304,15 +304,23 @@
 </header>
 
 <main class="container">
-    <div class="welcome-banner">
-        <div>
-            <h2>Manage Bookings</h2>
-            <p>View and manage all your service bookings</p>
+        <div class="welcome-banner">
+            <div>
+                <h2>Manage Bookings</h2>
+                <p>View and manage all your service bookings</p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <!-- Add this status filter -->
+                <select id="booking-status-filter" class="status-select">
+                    <option value="all">All Bookings</option>
+                    <option value="completed">Completed Only</option>
+                    <option value="pending_approval">Pending Only</option>
+                    <option value="approved">Approved Only</option>
+                    <option value="cancelled">Cancelled Only</option>
+                </select>
+                <button class="btn" onclick="window.location.href='cleanerListings.html'">View Listings</button>
+            </div>
         </div>
-        <div>
-            <button class="btn" onclick="window.location.href='cleanerListings.html'">View Listings</button>
-        </div>
-    </div>
 
 
     <!-- Loading indicator - shown while loading data -->
