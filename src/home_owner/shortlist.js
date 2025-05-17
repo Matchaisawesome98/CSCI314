@@ -561,6 +561,78 @@ class shortListUI {
         }
     }
 
+        prepareServiceForDisplay(service) {
+        return {
+            id: service.listing_id || service.id || service._id || '0',
+            title: service.title || 'Unnamed Service',
+            description: service.description || 'No description available',
+            formattedPrice: this.formatPrice(service.price),
+            imageUrl: service.image_path || this.getDefaultImage(),
+            category: service.category_name || service.category || 'Uncategorized',
+            providerName: this.getProviderName(service),
+            filterCategory: this.getCategoryFilter(service.category_name || service.category),
+            isOwner: this.isServiceOwner(service.user_id)
+        };
+    }
+
+    formatPrice(price) {
+        const priceNum = typeof price === 'string' ? parseFloat(price) : price;
+        return !isNaN(priceNum) ? `S$${priceNum.toFixed(2)}` : 'Price not available';
+    }
+
+    // Get default image if none provided
+    getDefaultImage() {
+        return 'https://placehold.co/600x400?text=Cleaning+Service';
+    }
+
+    // Map category to filter value
+    getCategoryFilter(category) {
+        if (!category) return 'all';
+
+        category = category.toLowerCase();
+        const filterMap = {
+            'home': 'home',
+            'office': 'office',
+            'carpet': 'carpet',
+            'window': 'windows',
+            'deep': 'deep'
+        };
+
+        for (const [key, value] of Object.entries(filterMap)) {
+            if (category.includes(key)) return value;
+        }
+
+        return 'all';
+    }
+
+    // Check if user is the owner of the service listing
+    isServiceOwner(serviceUserId) {
+        const currentUserId = localStorage.getItem('currentUserId');
+        return serviceUserId === currentUserId;
+    }
+
+    // Get provider name - use first priority field or fallback to alternatives
+    getProviderName(service) {
+        // First try the joined provider_name field
+        if (service.provider_name) {
+            return service.provider_name;
+        }
+
+        // Next try to create it from first_name and last_name if available
+        if (service.first_name && service.last_name) {
+            return `${service.first_name} ${service.last_name}`;
+        }
+
+        // Fallback to user_id if no name is available
+        if (service.user_id) {
+            return `Provider ${service.user_id}`;
+        }
+
+        // Last resort
+        return 'Unknown Provider';
+    }
+
+
     renderShortlistedServices(services) {
         // Clear the container
         this.servicesContainer.innerHTML = '';
@@ -594,7 +666,7 @@ class shortListUI {
                 const card = document.importNode(template.content, true).querySelector('.service-card');
 
                 // Prepare the service data
-                const processedService = controller.prepareServiceForDisplay(service);
+                const processedService = this.prepareServiceForDisplay(service);
 
                 // Set data attributes
                 card.setAttribute('data-id', processedService.id);
