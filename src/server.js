@@ -2261,6 +2261,401 @@ app.get('/api/bookings/user/search', async (req, res) => {
     }
 });
 
+// User Management API Endpoints
+
+/**
+ * Authentication endpoint
+ * Method: POST
+ * Path: /api/authenticate
+ * Request Body: { username: string, password: string }
+ * Response: JSON { success: bool, authenticated: bool, userRole: string (if authenticated) }
+ */
+app.post('/api/authenticate', (req, res) => {
+    const { username, password } = req.body;
+
+    // IMPORTANT: In production, use parameterized queries to prevent SQL injection
+    // Also, passwords should be hashed, not stored in plain text
+    const query = 'SELECT * FROM user_accounts WHERE user_id = ? AND password = ?';
+
+    pool.query(query, [username, password], (error, results) => {
+        if (error) {
+            console.error('Database error:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Internal server error'
+            });
+            return;
+        }
+
+        if (results.length > 0) {
+            const userRole = results[0].roles || 'home_owner';
+            res.json({
+                success: true,
+                authenticated: true,
+                userRole: userRole
+            });
+        } else {
+            res.json({
+                success: true,
+                authenticated: false
+            });
+        }
+    });
+});
+
+/**
+ * Get all users endpoint
+ * Method: GET
+ * Path: /get-homeowners
+ * Response: JSON { success: bool, data: array of user objects }
+ */
+app.get('/get-homeowners', async (req, res) => {
+    try {
+        const connection = await mysql2Promise.createConnection(dbConfig);
+        const [rows] = await connection.execute('SELECT * FROM user_accounts');
+        await connection.end();
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch data',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * Get specific user by ID
+ * Method: GET
+ * Path: /get-user/:id
+ * Response: JSON { success: bool, data: user object }
+ */
+app.get('/get-user/:id', async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const connection = await mysql2Promise.createConnection(dbConfig);
+        const [rows] = await connection.execute('SELECT * FROM user_accounts WHERE user_id = ?', [userId]);
+        await connection.end();
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: rows[0]
+        });
+    } catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch user',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * Create a new user
+ * Method: POST
+ * Path: /api/users
+ * Request Body: { email, password, first_name, last_name, roles, isSuspended }
+ * Response: JSON { success: bool, message: string, user_id: string }
+ */
+app.post('/api/users', async (req, res) => {
+    const userData = req.body;
+
+    try {
+        // Validate input
+        if (!userData.email || !userData.password || !userData.first_name || !userData.last_name) {
+            return res.status(400).json({
+                success: false,
+                message: 'Required fields missing: email, password, first_name, last_name'
+            });
+        }
+
+        // Create connection
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Generate a user_id if not provided
+        const userId = userData.user_id || `user${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`;
+
+        // Insert the new user
+        const query = `
+            INSERT INTO user_accounts 
+            (user_id, email, password, first_name, last_name, roles, isSuspended) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        const [result] = await connection.execute(query, [
+            userId,
+            userData.email,
+            userData.password,
+            userData.first_name,
+            userData.last_name,
+            userData.roles || 'home_owner',
+            userData.isSuspended || false
+        ]);
+
+        await connection.end();
+
+        res.status(201).json({
+            success: true,
+            message: 'User created successfully',
+            user_id: userId
+        });
+
+    } catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create user',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * Update user endpoint
+ * Method: PUT
+ * Path: /update-user/:id
+ * Request Body: object containing user attributes to update
+ * Response: JSON { success: bool, message: string, affectedRows: number }
+ */
+app.put('/update-user/:id', async (req, res) => {
+    const userId = req.params.id;
+    const userData = req.body;
+
+    try {
+        // Validate input
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        if (Object.keys(userData).length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No data provided for update'
+            });
+        }
+
+        // Create connection
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Handle field name mapping
+        const fieldMap = {
+            // Map frontend field names to database field names if needed
+            firstName: 'first_name',
+            lastName: 'last_name'
+        };
+
+        // Build update query with mapped fields
+        const mappedUserData = {};
+        for (const [key, value] of Object.entries(userData)) {
+            // Use the mapped field name if available, otherwise use the original key
+            const fieldName = fieldMap[key] || key;
+            mappedUserData[fieldName] = value;
+        }
+
+        // Build update query dynamically
+        const fields = Object.keys(mappedUserData);
+        const values = Object.values(mappedUserData);
+
+        // Construct SET clause
+        const setClause = fields.map(field => `${field} = ?`).join(', ');
+
+        // Determine which column to use as primary key
+        const idField = await determineIdField(connection);
+
+        // Construct and execute the query
+        const query = `UPDATE user_accounts SET ${setClause} WHERE ${idField} = ?`;
+        const [result] = await connection.execute(query, [...values, userId]);
+
+        await connection.end();
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found or no changes made'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'User updated successfully',
+            affectedRows: result.affectedRows
+        });
+
+    } catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update user',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * Update user suspension status endpoint
+ * Method: POST
+ * Path: /update-suspension-status
+ * Request Body: { userId: string, isSuspended: boolean }
+ * Response: JSON { success: bool, message: string }
+ */
+app.post('/update-suspension-status', async (req, res) => {
+    try {
+        const { userId, isSuspended } = req.body;
+
+        // Basic validation
+        if (userId === undefined || isSuspended === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID and suspension status are required'
+            });
+        }
+
+        // Connect to the database
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Check if user exists
+        const [existingUser] = await connection.execute(
+            'SELECT * FROM user_accounts WHERE user_id = ?',
+            [userId]
+        );
+
+        if (existingUser.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Update the suspension status
+        await connection.execute(
+            'UPDATE user_accounts SET isSuspended = ? WHERE user_id = ?',
+            [isSuspended, userId]
+        );
+
+        await connection.end();
+
+        console.log(`User ${userId} suspension status updated to: ${isSuspended}`);
+        res.json({
+            success: true,
+            message: `User has been ${isSuspended ? 'suspended' : 'unsuspended'} successfully`
+        });
+    } catch (error) {
+        console.error('Error in update-suspension-status endpoint:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update user suspension status: ' + error.message
+        });
+    }
+});
+
+/**
+ * Alternative update suspension status endpoint with /api/ prefix
+ * Method: POST
+ * Path: /api/update-suspension-status
+ * Request Body: { userId: string, isSuspended: boolean }
+ * Response: JSON { success: bool, message: string }
+ */
+app.post('/api/update-suspension-status', async (req, res) => {
+    try {
+        const { userId, isSuspended } = req.body;
+
+        // Basic validation
+        if (userId === undefined || isSuspended === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID and suspension status are required'
+            });
+        }
+
+        // Connect to the database
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Check if user exists
+        const [existingUser] = await connection.execute(
+            'SELECT * FROM user_accounts WHERE user_id = ?',
+            [userId]
+        );
+
+        if (existingUser.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Update the suspension status
+        await connection.execute(
+            'UPDATE user_accounts SET isSuspended = ? WHERE user_id = ?',
+            [isSuspended, userId]
+        );
+
+        await connection.end();
+
+        console.log(`User ${userId} suspension status updated to: ${isSuspended}`);
+        res.json({
+            success: true,
+            message: `User has been ${isSuspended ? 'suspended' : 'unsuspended'} successfully`
+        });
+    } catch (error) {
+        console.error('Error in api/update-suspension-status endpoint:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update user suspension status: ' + error.message
+        });
+    }
+});
+
+/**
+ * Helper function to determine which ID field is present in the database table
+ * Used by update endpoints to handle different table structures
+ */
+async function determineIdField(connection) {
+    try {
+        // Get table structure
+        const [columns] = await connection.execute(`
+            SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'user_accounts'
+        `, [dbConfig.database]);
+
+        const columnNames = columns.map(col => col.COLUMN_NAME);
+
+        // Check if 'id' exists
+        if (columnNames.includes('id')) {
+            return 'id';
+        }
+        // Otherwise use 'user_id'
+        else if (columnNames.includes('user_id')) {
+            return 'user_id';
+        }
+        // Default to 'id' if neither is found
+        else {
+            return 'id';
+        }
+    } catch (error) {
+        console.error('Error determining ID field:', error);
+        return 'id'; // Default to 'id'
+    }
+}
+
 // Test endpoint
 app.get('/test', (req, res) => {
     res.json({ message: 'Server is running' });
