@@ -15,6 +15,7 @@ class HomeOwnerBookingListUI {
         this.getUserBookingsController = new GetUserBookingsController();
         this.getBookingDetailsController = new GetBookingDetailsController();
         this.updateBookingStatusController = new UpdateBookingStatusController();
+        this.searchController = new SearchBookingsController();
 
         // Initialize DOM elements and setup event listeners
         this.initDomElements();
@@ -42,6 +43,8 @@ class HomeOwnerBookingListUI {
         this.modalCancel = document.getElementById('modal-cancel');
         this.modalConfirm = document.getElementById('modal-confirm');
         this.bookingDetailsModal = document.getElementById('booking-details-modal');
+        this.searchInput = document.getElementById('search-input');
+        this.searchBtn = document.getElementById('search-btn');
     }
 
     /**
@@ -59,6 +62,23 @@ class HomeOwnerBookingListUI {
         // Modal buttons
         if (this.modalCancel) {
             this.modalCancel.addEventListener('click', () => this.closeStatusModal());
+        }
+
+        // Add search input event listeners
+        if (this.searchInput) {
+            this.searchInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    this.performSearch();
+                }
+            });
+        }
+
+        // Add search button click listener
+        if (this.searchBtn) {
+            this.searchBtn.addEventListener('click', () => {
+                this.performSearch();
+            });
         }
 
         if (this.modalConfirm) {
@@ -84,6 +104,44 @@ class HomeOwnerBookingListUI {
                 this.showBookingDetails(bookingId);
             }
         });
+    }
+
+    async performSearch() {
+        if (!this.searchInput) return;
+
+        const query = this.searchInput.value.trim();
+        this.searchQuery = query;
+
+        if (query === '') {
+            // If search is empty, just reset to show all bookings
+            this.loadBookings();
+            return;
+        }
+
+        try {
+            this.showLoadingState();
+
+            const result = await this.searchController.searchBookings(
+                this.currentUserId,
+                query,
+                this.selectedStatus
+            );
+
+            if (result.success) {
+                this.bookings = result.data;
+                this.displayBookings();
+                console.log(`Found ${this.bookings.length} bookings matching "${query}"`);
+            } else {
+                throw new Error(result.error || 'Search failed');
+            }
+        } catch (error) {
+            console.error('Error searching bookings:', error);
+            this.showNotification(`Search failed: ${error.message}`, 'error');
+            // Fall back to showing all bookings
+            this.loadBookings();
+        } finally {
+            this.hideLoadingState();
+        }
     }
 
     /**
@@ -125,62 +183,154 @@ class HomeOwnerBookingListUI {
      * Display bookings with optional filtering
      */
     displayBookings() {
-        if (!this.bookingsTableBody) return;
+    // Debug: Log the first booking to see its structure
+    if (this.bookings.length > 0) {
+        console.log('Sample booking object:', this.bookings[0]);
+    }
+    if (!this.bookingsTableBody) return;
 
-        // Clear current content
-        this.bookingsTableBody.innerHTML = '';
+    // Clear current content
+    this.bookingsTableBody.innerHTML = '';
 
-        // Filter bookings by selected status
-        let filteredBookings = this.bookings;
-        if (this.selectedStatus !== 'all') {
-            filteredBookings = this.bookings.filter(booking => booking.status === this.selectedStatus);
-        }
+    // Remove any previous no-results message if it exists
+    this.removeNoResultsMessage();
 
-        // Check if we have bookings to display
-        if (filteredBookings.length === 0) {
+    // Filter bookings by selected status
+    let filteredBookings = this.bookings;
+    if (this.selectedStatus !== 'all') {
+        filteredBookings = this.bookings.filter(booking => booking.status === this.selectedStatus);
+    }
+
+    // Apply search filter if there's a search query
+    if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase();
+        filteredBookings = filteredBookings.filter(booking => {
+            // First, let's add logging to debug the structure
+            console.log('Booking object:', booking);
+
+            return (
+                // Service title might come from the API joining with listings table
+                (booking.service_title && booking.service_title.toLowerCase().includes(query)) ||
+
+                // Provider name might be joined from user_accounts
+                (booking.provider_name && booking.provider_name.toLowerCase().includes(query)) ||
+
+                // These are the actual fields from the service_bookings table
+                (booking.scheduled_date && booking.scheduled_date.toString().toLowerCase().includes(query)) ||
+                (booking.scheduled_time && booking.scheduled_time.toString().toLowerCase().includes(query)) ||
+                (booking.status && booking.status.toLowerCase().includes(query)) ||
+
+                // It could also use listing_id to reference a service name
+                (booking.listing_id && booking.listing_id.toString().includes(query))
+            );
+        });
+    }
+
+    // Check if we have bookings to display
+    if (filteredBookings.length === 0) {
+        if (this.searchQuery) {
+            // Show nice "no search results" message with clear button when a search was performed
+            this.showNoSearchResultsMessage(this.searchQuery);
+        } else {
+            // Show standard "no bookings" message when there are no bookings at all
             if (this.noBookingsMessage) {
                 this.noBookingsMessage.style.display = 'block';
                 this.noBookingsMessage.textContent = this.selectedStatus === 'all'
                     ? 'You have no bookings yet.'
                     : `You have no ${this.formatStatus(this.selectedStatus)} bookings.`;
             }
-
-            if (this.bookingsTable) {
-                this.bookingsTable.style.display = 'none';
-            }
-
-            return;
-        }
-
-        // Hide no bookings message and show table
-        if (this.noBookingsMessage) {
-            this.noBookingsMessage.style.display = 'none';
         }
 
         if (this.bookingsTable) {
-            this.bookingsTable.style.display = 'table';
+            this.bookingsTable.style.display = 'none';
         }
 
-        // Sort bookings: pending first, then by date (most recent first)
-        filteredBookings.sort((a, b) => {
-            // First sort by status priority
-            const statusPriority = { 'pending_approval': 0, 'approved': 1, 'completed': 2, 'cancelled': 3 };
-            const priorityDiff = statusPriority[a.status] - statusPriority[b.status];
-
-            if (priorityDiff !== 0) return priorityDiff;
-
-            // Then sort by date (most recent first for same status)
-            const dateA = new Date(`${a.scheduled_date} ${a.scheduled_time}`);
-            const dateB = new Date(`${b.scheduled_date} ${b.scheduled_time}`);
-            return dateA - dateB; // Ascending order (upcoming first)
-        });
-
-        // Create booking rows
-        filteredBookings.forEach(booking => {
-            const row = this.createBookingRow(booking);
-            this.bookingsTableBody.appendChild(row);
-        });
+        return;
     }
+
+    // Hide no bookings message and show table
+    if (this.noBookingsMessage) {
+        this.noBookingsMessage.style.display = 'none';
+    }
+
+    if (this.bookingsTable) {
+        this.bookingsTable.style.display = 'table';
+    }
+
+    // Sort bookings: pending first, then by date (most recent first)
+    filteredBookings.sort((a, b) => {
+        // First sort by status priority
+        const statusPriority = { 'pending_approval': 0, 'approved': 1, 'completed': 2, 'cancelled': 3 };
+        const priorityDiff = statusPriority[a.status] - statusPriority[b.status];
+
+        if (priorityDiff !== 0) return priorityDiff;
+
+        // Then sort by date (most recent first for same status)
+        const dateA = new Date(`${a.scheduled_date} ${a.scheduled_time}`);
+        const dateB = new Date(`${b.scheduled_date} ${b.scheduled_time}`);
+        return dateA - dateB; // Ascending order (upcoming first)
+    });
+
+    // Create booking rows
+    filteredBookings.forEach(booking => {
+        const row = this.createBookingRow(booking);
+        this.bookingsTableBody.appendChild(row);
+    });
+}
+
+/**
+ * Show a nice "no search results" message with a clear button
+ */
+showNoSearchResultsMessage(query) {
+    // Create the no results container
+    const noResultsElement = document.createElement('div');
+    noResultsElement.className = 'no-results-message';
+    noResultsElement.style.textAlign = 'center';
+    noResultsElement.style.padding = '30px';
+    noResultsElement.style.backgroundColor = 'white';
+    noResultsElement.style.borderRadius = '8px';
+    noResultsElement.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+    noResultsElement.style.margin = '20px 0';
+
+    // Add content with search query and clear button
+    noResultsElement.innerHTML = `
+        <p style="margin-bottom: 15px; font-size: 16px;">No bookings match your search for "<strong>${query}</strong>"</p>
+        <button class="btn" style="background-color: #ff5722; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer;">Clear Search</button>
+    `;
+
+    // Add to DOM in the appropriate place (above the table)
+    const tableContainer = this.bookingsTable?.parentNode;
+    if (tableContainer) {
+        tableContainer.insertBefore(noResultsElement, this.bookingsTable);
+    } else {
+        // Fallback if we can't find the table container
+        document.querySelector('main.container').appendChild(noResultsElement);
+    }
+
+    // Add event listener to the clear button to reset search
+    const clearButton = noResultsElement.querySelector('button');
+    clearButton.addEventListener('click', () => {
+        if (this.searchInput) {
+            this.searchInput.value = '';
+            this.searchQuery = '';
+            this.performSearch();
+        } else {
+            // Fallback if we can't access the search input directly
+            this.searchQuery = '';
+            this.loadBookings();
+        }
+    });
+}
+
+/**
+ * Remove any existing no results message
+ */
+removeNoResultsMessage() {
+    const existingNoResults = document.querySelector('.no-results-message');
+    if (existingNoResults) {
+        existingNoResults.remove();
+    }
+}
 
     /**
      * Create a booking table row
@@ -607,6 +757,8 @@ class GetUserBookingsController {
     }
 }
 
+
+
 // Controller for getting booking details
 class GetBookingDetailsController {
     constructor() {
@@ -649,6 +801,67 @@ class UpdateBookingStatusController {
     }
 }
 
+// Controller for searching bookings
+class SearchBookingsController {
+    constructor() {
+        console.log('Initializing SearchBookingsController');
+        this.entity = new BookingListEntity();
+    }
+
+    /**
+     * Search bookings for a user
+     */
+    async searchBookings(userId, query, status = 'all') {
+        console.log(`SearchBookingsController.searchBookings called with: userId=${userId}, query=${query}, status=${status}`);
+
+        try {
+            // Validate inputs
+            if (!userId) {
+                return { success: false, error: 'User ID is required' };
+            }
+
+            // Get all bookings first, filtered by status
+            const result = await this.entity.searchUserBookings(userId, status);
+
+            // Add logging to debug
+            console.log('searchUserBookings returned:', result);
+
+            // Make sure we have a valid result
+            if (!result) {
+                return { success: false, error: 'No response from searchUserBookings', data: [] };
+            }
+
+            if (!result.success) {
+                return result;
+            }
+
+            // If query is empty, return all results
+            if (!query || query.trim() === '') {
+                return result;
+            }
+
+            // Filter results client-side based on the query
+            const searchQuery = query.toLowerCase();
+            const filteredData = (result.data || []).filter(booking =>
+                (booking.service_title && booking.service_title.toLowerCase().includes(searchQuery)) ||
+                (booking.provider_name && booking.provider_name.toLowerCase().includes(searchQuery)) ||
+                (booking.scheduled_date && String(booking.scheduled_date).toLowerCase().includes(searchQuery)) ||
+                (booking.status && booking.status.toLowerCase().includes(searchQuery))
+            );
+
+            return {
+                success: true,
+                data: filteredData
+            };
+
+        } catch (error) {
+            console.error('Error in SearchBookingsController.searchBookings:', error);
+            return { success: false, error: error.message || 'An error occurred while searching bookings', data: [] };
+        }
+    }
+}
+
+
 
 // ===================== ENTITY LAYER =====================
 // Single entity class that handles all data operations
@@ -674,6 +887,49 @@ class BookingListEntity {
         } catch (error) {
             console.error('Entity: Error fetching user bookings:', error);
             throw error;
+        }
+    }
+
+    /**
+ * Search all bookings for a user with optional status filter
+ */
+    async searchUserBookings(userId, status = 'all') {
+        try {
+            console.log(`BookingEntity.searchUserBookings called with: userId=${userId}, status=${status}`);
+
+            // Build the endpoint URL
+            let endpoint = `${this.apiBaseUrl}/bookings/user/${encodeURIComponent(userId)}`;
+
+            // Add status filter if not 'all'
+            if (status && status !== 'all') {
+                endpoint += `?status=${encodeURIComponent(status)}`;
+            }
+
+            console.log('Search user bookings endpoint:', endpoint);
+
+            // Make the API request
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Search user bookings API error:', errorText);
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Search user bookings API results:', result);
+
+            return {
+                success: true,
+                data: result.data || []
+            };
+        } catch (error) {
+            console.error('Error searching user bookings:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to search bookings',
+                data: []
+            };
         }
     }
 

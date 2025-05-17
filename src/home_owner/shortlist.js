@@ -484,15 +484,15 @@ class shortListUI {
         if (userAvatar) userAvatar.textContent = userInitial;
     }
 
-    setupShortlistPageListeners() {
-        // Search input for the shortlist page
-        if (this.searchInput) {
-            // Use debounce for smoother search experience
-            let debounceTimer;
-            this.searchInput.addEventListener('input', () => {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => this.filterShortlistedServices(), 300); // 300ms debounce
-            });
+setupShortlistPageListeners() {
+    // Search input for the shortlist page
+    if (this.searchInput) {
+        // Use debounce for smoother search experience
+        let debounceTimer;
+        this.searchInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => this.filterShortlistedServices(), 300); // 300ms debounce
+        });
 
         // Also handle Enter key
         this.searchInput.addEventListener('keyup', (e) => {

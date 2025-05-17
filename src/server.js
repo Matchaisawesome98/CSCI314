@@ -2176,6 +2176,91 @@ app.get('/api/shortlist/search', async (req, res) => {
     }
 });
 
+// Search bookings for a homeowner
+app.get('/api/bookings/user/search', async (req, res) => {
+    try {
+        const { user_id, query, status } = req.query;
+
+        // Validate user_id is required
+        if (!user_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        console.log(`Searching bookings for user: ${user_id}, query: "${query || ''}", status: ${status || 'all'}`);
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Build the search query
+        let sql = `
+            SELECT 
+                b.booking_id, 
+                b.scheduled_date, 
+                b.scheduled_time, 
+                b.status,
+                l.listing_id,
+                l.title AS service_title,
+                l.price AS service_price, 
+                l.image_path AS service_image,
+                CONCAT(p.first_name, ' ', p.last_name) AS provider_name
+            FROM 
+                service_bookings b
+            JOIN 
+                listings l ON b.listing_id = l.listing_id
+            JOIN 
+                user_accounts p ON b.provider_id = p.user_id
+            WHERE 
+                b.user_id = ?
+        `;
+
+        let params = [user_id];
+
+        // Add search conditions if query is provided
+        if (query && query.trim() !== '') {
+            sql += ` AND (
+                l.title LIKE ? OR 
+                l.description LIKE ? OR 
+                CONCAT(p.first_name, ' ', p.last_name) LIKE ? OR
+                DATE_FORMAT(b.scheduled_date, '%W, %M %d, %Y') LIKE ? OR
+                DATE_FORMAT(b.scheduled_time, '%h:%i %p') LIKE ? OR
+                b.status LIKE ?
+            )`;
+
+            const searchParam = `%${query}%`;
+            params.push(searchParam, searchParam, searchParam, searchParam, searchParam, searchParam);
+        }
+
+        // Add status filter if provided
+        if (status && status !== 'all') {
+            sql += ` AND b.status = ?`;
+            params.push(status);
+        }
+
+        // Add order by to sort by date and time
+        sql += ` ORDER BY b.scheduled_date DESC, b.scheduled_time DESC`;
+
+        // Execute the query
+        const [rows] = await connection.execute(sql, params);
+        await connection.end();
+
+        console.log(`Search found ${rows.length} bookings for user ${user_id}`);
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error('Error searching user bookings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to search bookings',
+            error: error.message
+        });
+    }
+});
+
 // Test endpoint
 app.get('/test', (req, res) => {
     res.json({ message: 'Server is running' });

@@ -352,6 +352,36 @@
             color: var(--dark-gray);
             cursor: pointer;
         }
+
+        .no-results-message {
+        text-align: center;
+        padding: 30px;
+        background-color: var(--white);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        margin: 20px 0;
+    }
+
+    .no-results-message p {
+        margin-bottom: 15px;
+        font-size: 16px;
+        color: var(--dark-gray);
+    }
+
+    .no-results-message button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.3s;
+    }
+
+    .no-results-message button:hover {
+        background-color: #e64a19;
+    }
     </style>
 </head>
 <body>
@@ -441,256 +471,5 @@
 </body>
 
 <script src="home_owner_bookingList.js"></script>
-<script>
-// Add this search functionality to your home_owner_bookingList.js file
 
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Set up search functionality
-    setupSearchFunctionality();
-});
-
-function setupSearchFunctionality() {
-    const searchInput = document.getElementById('search-input');
-    const searchBtn = document.getElementById('search-btn');
-
-    if (!searchInput || !searchBtn) {
-        console.error('Search elements not found in the DOM');
-        return;
-    }
-
-    console.log('Setting up search functionality');
-
-    // Add clear button to search input
-    addSearchClearButton(searchInput);
-
-    // Search button click handler
-    searchBtn.addEventListener('click', function() {
-        const query = searchInput.value.trim();
-        performSearch(query);
-    });
-
-    // Enter key press handler
-    searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault(); // Prevent form submission if in a form
-            const query = searchInput.value.trim();
-            performSearch(query);
-        }
-    });
-
-    // Optional: Live search as user types (with debounce)
-    searchInput.addEventListener('input', debounce(function() {
-        const query = searchInput.value.trim();
-        if (query.length === 0 || query.length > 2) {
-            performSearch(query);
-        }
-    }, 300));
-
-    // Set up status filter change handler if it exists
-    const filterSelect = document.getElementById('booking-status-filter');
-    if (filterSelect) {
-        filterSelect.addEventListener('change', function() {
-            // Re-apply search with current query when filter changes
-            const query = searchInput.value.trim();
-            performSearch(query);
-        });
-    }
-}
-
-function addSearchClearButton(searchInput) {
-    // Check if clear button already exists
-    if (document.getElementById('search-clear-btn')) return;
-
-    const searchContainer = searchInput.parentElement;
-
-    // Create clear button
-    const clearBtn = document.createElement('button');
-    clearBtn.id = 'search-clear-btn';
-    clearBtn.innerHTML = '✕';
-    clearBtn.type = 'button'; // Ensure it doesn't submit forms
-    clearBtn.style.position = 'absolute';
-    clearBtn.style.right = '40px';
-    clearBtn.style.top = '50%';
-    clearBtn.style.transform = 'translateY(-50%)';
-    clearBtn.style.background = 'none';
-    clearBtn.style.border = 'none';
-    clearBtn.style.color = '#757575';
-    clearBtn.style.cursor = 'pointer';
-    clearBtn.style.display = 'none';
-
-    // Add clear button to container
-    searchContainer.appendChild(clearBtn);
-
-    // Show/hide clear button based on input content
-    searchInput.addEventListener('input', function() {
-        clearBtn.style.display = this.value ? 'block' : 'none';
-    });
-
-    // Clear search when button clicked
-    clearBtn.addEventListener('click', function() {
-        searchInput.value = '';
-        searchInput.focus();
-        clearBtn.style.display = 'none';
-        performSearch(''); // Clear search results
-    });
-}
-
-function performSearch(query) {
-    console.log('Performing search for:', query);
-
-    // Get all table rows
-    const tableBody = document.getElementById('bookings-table-body');
-    const rows = tableBody ? tableBody.getElementsByTagName('tr') : [];
-
-    // Get current filter value
-    const filterSelect = document.getElementById('booking-status-filter');
-    const filterValue = filterSelect ? filterSelect.value : 'all';
-
-    let visibleCount = 0;
-
-    // Process each row
-    for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const cells = row.getElementsByTagName('td');
-
-        // Skip if no cells
-        if (!cells.length) continue;
-
-        // Apply status filter first
-        const statusCell = cells[4]; // Assuming status is in the 5th column (index 4)
-        const statusValue = statusCell.textContent.toLowerCase();
-
-        // Check if row passes the status filter
-        const passesStatusFilter = filterValue === 'all' ||
-                                  statusValue.includes(filterValue.toLowerCase()) ||
-                                  statusCell.querySelector('.status-' + filterValue) !== null;
-
-        if (!passesStatusFilter) {
-            row.style.display = 'none';
-            continue;
-        }
-
-        // If no search query, show all rows that pass the filter
-        if (!query) {
-            row.style.display = '';
-            visibleCount++;
-            continue;
-        }
-
-        // Check if row contains the search query in any cell
-        let matchFound = false;
-        for (let j = 0; j < cells.length - 1; j++) { // Skip the last column (actions)
-            if (cells[j].textContent.toLowerCase().includes(query.toLowerCase())) {
-                matchFound = true;
-                break;
-            }
-        }
-
-        // Show/hide row based on match
-        row.style.display = matchFound ? '' : 'none';
-        if (matchFound) visibleCount++;
-    }
-
-    // Show/hide no results message
-    updateNoResultsMessage(visibleCount, query, filterValue);
-}
-
-function updateNoResultsMessage(visibleCount, query, filterValue) {
-    const table = document.getElementById('bookings-table');
-    const noResultsMsg = document.getElementById('no-bookings-message');
-
-    if (!table || !noResultsMsg) return;
-
-    if (visibleCount === 0) {
-        // Show no results message
-        table.style.display = 'none';
-        noResultsMsg.style.display = 'block';
-
-        // Create appropriate message
-        let message = 'No bookings found';
-        if (query && filterValue !== 'all') {
-            message = `No ${getFilterDisplayName(filterValue)} bookings found matching "${query}"`;
-        } else if (query) {
-            message = `No bookings found matching "${query}"`;
-        } else if (filterValue !== 'all') {
-            message = `No ${getFilterDisplayName(filterValue)} bookings found`;
-        }
-
-        // Add View All button to the message
-        noResultsMsg.innerHTML = `
-            <p>${message}</p>
-            <button id="view-all-btn" class="btn btn-secondary" style="margin-top: 10px;">Show all</button>
-        `;
-
-        // Add event listener to View All button
-        const viewAllBtn = document.getElementById('view-all-btn');
-        if (viewAllBtn) {
-            viewAllBtn.addEventListener('click', function() {
-                resetSearch();
-            });
-        }
-    } else {
-        // Show table, hide message
-        table.style.display = 'table';
-        noResultsMsg.style.display = 'none';
-    }
-}
-
-function resetSearch() {
-    // Reset search input
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.value = '';
-    }
-
-    // Reset filter to show all if exists
-    const filterSelect = document.getElementById('booking-status-filter');
-    if (filterSelect) {
-        filterSelect.value = 'all';
-    }
-
-    // Hide clear button
-    const clearBtn = document.getElementById('search-clear-btn');
-    if (clearBtn) {
-        clearBtn.style.display = 'none';
-    }
-
-    // Show all rows that match the filter (now 'all')
-    performSearch('');
-}
-
-function getFilterDisplayName(filterValue) {
-    const filterMap = {
-        'pending_approval': 'pending approval',
-        'approved': 'approved',
-        'completed': 'completed',
-        'cancelled': 'cancelled'
-    };
-
-    return filterMap[filterValue] || filterValue;
-}
-
-// Utility function to debounce frequent events
-function debounce(func, wait) {
-    let timeout;
-    return function() {
-        const context = this;
-        const args = arguments;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            func.apply(context, args);
-        }, wait);
-    };
-}
-
-// Function to reset search from outside this module
-function resetBookingSearch() {
-    resetSearch();
-}
-
-// If you have a function that loads the initial bookings data,
-// add this line at the end of that function:
-// resetSearch(); // Reset search when data is loaded
-</script>
 </html>
