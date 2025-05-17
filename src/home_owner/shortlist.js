@@ -9,6 +9,7 @@ class shortListUI {
         this.removeController = new RemoveFromShortlistController();
         this.checkController = new CheckShortlistController();
         this.getUserController = new GetUserShortlistController();
+        this.searchController = new SearchShortlistController();
 
         // User info
         this.userId = localStorage.getItem('currentUserId');
@@ -169,8 +170,8 @@ class shortListUI {
     }
 
     // Perform search and filter services
-    performSearch() {
-        console.log('Performing search');
+    async performSearch() {
+        console.log('Performing search using API');
 
         const query = this.searchInput.value.trim().toLowerCase();
 
@@ -180,45 +181,29 @@ class shortListUI {
             existingNoResults.remove();
         }
 
-        // If search is empty, show all cards
+        // If search is empty, show all shortlisted services
         if (!query) {
-            const cards = document.querySelectorAll('.service-card');
-            cards.forEach(card => {
-                card.style.display = '';
-            });
+            this.viewShortlistedServices();
             return;
         }
 
-        // Get all service cards
-        const cards = document.querySelectorAll('.service-card');
-        let matchFound = false;
+        // Show loading state
+        this.servicesContainer.innerHTML = '<p style="text-align:center;padding:20px;">Searching your shortlisted services...</p>';
 
-        // Filter cards based on search query
-        cards.forEach(card => {
-            const title = card.querySelector('.service-title')?.textContent.toLowerCase() || '';
-            const description = card.querySelector('.service-description')?.textContent.toLowerCase() || '';
-            const price = card.querySelector('.service-price')?.textContent.toLowerCase() || '';
-            const category = card.querySelector('.tag')?.textContent.toLowerCase() || '';
-            const provider = card.querySelector('.provider-name')?.textContent.toLowerCase() || '';
+        try {
+            // Call the search controller to get filtered results from the API
+            const searchResult = await this.searchController.searchShortlist(this.userId, query);
 
-            // Check if any field contains the search query
-            if (
-                title.includes(query) ||
-                description.includes(query) ||
-                price.includes(query) ||
-                category.includes(query) ||
-                provider.includes(query)
-            ) {
-                card.style.display = '';
-                matchFound = true;
-            } else {
-                card.style.display = 'none';
+            if (!searchResult.success || !searchResult.data || searchResult.data.length === 0) {
+                this.showNoResultsMessage(query);
+                return;
             }
-        });
 
-        // Show "no results" message if no matches found
-        if (!matchFound && cards.length > 0) {
-            this.showNoResultsMessage(query);
+            // Render the filtered services
+            this.renderShortlistedServices(searchResult.data);
+        } catch (error) {
+            console.error('Error searching shortlisted services:', error);
+            this.servicesContainer.innerHTML = `<p style="text-align:center;padding:20px;">Error: ${error.message}</p>`;
         }
     }
 
@@ -502,8 +487,20 @@ class shortListUI {
     setupShortlistPageListeners() {
         // Search input for the shortlist page
         if (this.searchInput) {
-            this.searchInput.addEventListener('input', () => this.filterShortlistedServices());
-        }
+            // Use debounce for smoother search experience
+            let debounceTimer;
+            this.searchInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => this.filterShortlistedServices(), 300); // 300ms debounce
+            });
+
+        // Also handle Enter key
+        this.searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                this.filterShortlistedServices();
+            }
+        });
+    }
 
         // Event delegation for remove buttons
         document.addEventListener('click', (event) => {
@@ -705,60 +702,64 @@ class shortListUI {
         });
     }
 
-    filterShortlistedServices() {
+    // client sided filtering of services
+    async filterShortlistedServices() {
         const query = this.searchInput.value.trim().toLowerCase();
-        const cards = this.servicesContainer.querySelectorAll('.service-card');
-        let hasVisibleCards = false;
 
-        cards.forEach(card => {
-            const title = card.querySelector('.service-title')?.textContent.toLowerCase() || '';
-            const description = card.querySelector('.service-description')?.textContent.toLowerCase() || '';
-            const category = card.querySelector('.tag')?.textContent.toLowerCase() || '';
-            const provider = card.querySelector('.provider-name')?.textContent.toLowerCase() || '';
+        // If search is empty, show all services
+        if (!query) {
+            this.viewShortlistedServices();
+            return;
+        }
 
-            if (title.includes(query) || description.includes(query) ||
-                category.includes(query) || provider.includes(query)) {
-                card.style.display = '';
-                hasVisibleCards = true;
-            } else {
-                card.style.display = 'none';
+        // Show loading state
+        this.servicesContainer.innerHTML = '<p style="text-align:center;padding:20px;">Searching your shortlisted services...</p>';
+
+        try {
+            // Call the search controller
+            const searchResult = await this.searchController.searchShortlist(this.userId, query);
+
+            if (!searchResult.success || !searchResult.data || searchResult.data.length === 0) {
+                // No matching results
+                this.showEmptySearchResults(query);
+                return;
             }
+
+            // Render the filtered services
+            this.renderShortlistedServices(searchResult.data);
+        } catch (error) {
+            console.error('Error filtering shortlisted services:', error);
+            this.servicesContainer.innerHTML = `<p style="text-align:center;padding:20px;">Error searching: ${error.message}</p>`;
+        }
+    }
+
+
+    showEmptySearchResults(query) {
+        // Clear existing content
+        this.servicesContainer.innerHTML = '';
+
+        // Create and add the no results message
+        const noResults = document.createElement('div');
+        noResults.className = 'no-results';
+        noResults.style.gridColumn = '1 / -1';
+        noResults.style.padding = '20px';
+        noResults.style.backgroundColor = 'white';
+        noResults.style.borderRadius = '8px';
+        noResults.style.textAlign = 'center';
+        noResults.style.marginTop = '20px';
+
+        noResults.innerHTML = `
+            <p>No shortlisted services match your search for "<strong>${query}</strong>"</p>
+            <button class="btn" style="margin-top:10px;">Clear Search</button>
+        `;
+
+        // Add clear button functionality
+        noResults.querySelector('button').addEventListener('click', () => {
+            this.searchInput.value = '';
+            this.viewShortlistedServices();
         });
 
-        // Show empty state if no matching cards
-        if (!hasVisibleCards && cards.length > 0) {
-            // Check if we already have a no-results message
-            let noResults = this.servicesContainer.querySelector('.no-results');
-            if (!noResults) {
-                noResults = document.createElement('div');
-                noResults.className = 'no-results';
-                noResults.style.gridColumn = '1 / -1';
-                noResults.style.padding = '20px';
-                noResults.style.backgroundColor = 'white';
-                noResults.style.borderRadius = '8px';
-                noResults.style.textAlign = 'center';
-                noResults.style.marginTop = '20px';
-
-                noResults.innerHTML = `
-                    <p>No services match your search for "<strong>${query}</strong>"</p>
-                    <button class="btn" style="margin-top:10px;">Clear Search</button>
-                `;
-
-                // Add clear button functionality
-                noResults.querySelector('button').addEventListener('click', () => {
-                    this.searchInput.value = '';
-                    this.filterShortlistedServices();
-                });
-
-                this.servicesContainer.appendChild(noResults);
-            }
-        } else {
-            // Remove any existing no-results message
-            const noResults = this.servicesContainer.querySelector('.no-results');
-            if (noResults) {
-                noResults.remove();
-            }
-        }
+        this.servicesContainer.appendChild(noResults);
     }
 
     showEmptyState(message) {
@@ -904,6 +905,24 @@ class CheckShortlistController {
     async checkShortlistStatus(userId, listingId) {
         console.log('CheckShortlistController.checkShortlistStatus called with:', userId, listingId);
         return await this.entity.checkShortlistStatus(userId, listingId);
+    }
+}
+
+//controller to search for shortlisted services
+class SearchShortlistController {
+    constructor() {
+        console.log('Initializing SearchShortlistController');
+        this.entity = new ShortListEntity();
+    }
+
+    async searchShortlist(userId, query) {
+        console.log('SearchShortlistController.searchShortlist called with:', userId, query);
+
+        // Business logic can be added here if needed
+        // For example, sanitizing the query or limiting results
+
+        // Pass to entity layer
+        return await this.entity.searchShortlist(userId, query);
     }
 }
 
@@ -1113,6 +1132,50 @@ class ShortListEntity {
         } catch (error) {
             console.error('Error checking shortlist status:', error);
             return { success: false, isShortlisted: false };
+        }
+    }
+
+    //search a particular service from homeowner's shortlist
+    async searchShortlist(userId, query) {
+        try {
+            console.log(`Entity.searchShortlist called with userId: ${userId}, query: ${query}`);
+
+            // Input validation
+            if (!userId) {
+                console.error('Missing required user ID for shortlist search');
+                return { success: false, error: 'Missing required user ID' };
+            }
+
+            // Build the endpoint
+            let endpoint = `${this.apiBaseUrl}/shortlist/search?user_id=${encodeURIComponent(userId)}`;
+
+            // Add search query parameter if provided
+            if (query && query.trim()) {
+                endpoint += `&query=${encodeURIComponent(query.trim())}`;
+            }
+
+            console.log('Search endpoint:', endpoint);
+
+            // Make API request to search shortlisted items
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Shortlist search API error:', errorText);
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Shortlist search API results:', result);
+
+            return result;
+        } catch (error) {
+            console.error('Error searching shortlisted services:', error);
+            return {
+                success: false,
+                error: error.message,
+                data: []
+            };
         }
     }
 

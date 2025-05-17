@@ -2109,6 +2109,73 @@ app.get('/api/bookings/:bookingId', async (req, res) => {
 });
 
 
+//search from the shortlist datbase
+app.get('/api/shortlist/search', async (req, res) => {
+    try {
+        const { user_id, query } = req.query;
+
+        // Validate required user_id
+        if (!user_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Build the SQL query
+        let sql = `
+            SELECT l.*, CONCAT(u.first_name, ' ', u.last_name) as provider_name, 
+                   s.created_at as shortlisted_at
+            FROM shortlisted_listings s
+            JOIN listings l ON s.listing_id = l.listing_id
+            JOIN user_accounts u ON l.user_id = u.user_id
+            WHERE s.user_id = ?
+        `;
+
+        // Parameters for the query
+        let params = [user_id];
+
+        // Add search conditions if query is provided
+        if (query && query.trim()) {
+            sql += ` AND (
+                l.title LIKE ? OR 
+                l.description LIKE ? OR 
+                l.category_name LIKE ? OR 
+                CAST(l.price AS CHAR) LIKE ? OR
+                CONCAT(u.first_name, ' ', u.last_name) LIKE ?
+            )`;
+
+            const searchParam = `%${query.trim()}%`;
+            params.push(searchParam, searchParam, searchParam, searchParam, searchParam);
+        }
+
+        // Order by most recently shortlisted
+        sql += ` ORDER BY s.created_at DESC`;
+
+        console.log('Executing SQL:', sql);
+        console.log('With parameters:', params);
+
+        const [rows] = await connection.execute(sql, params);
+        await connection.end();
+
+        console.log(`Found ${rows.length} shortlisted items matching query for user ${user_id}`);
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error('Error searching shortlisted listings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to search shortlisted listings',
+            error: error.message
+        });
+    }
+});
+
 // Test endpoint
 app.get('/test', (req, res) => {
     res.json({ message: 'Server is running' });
