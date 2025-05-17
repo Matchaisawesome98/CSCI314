@@ -12,6 +12,13 @@ class CleanerBookingsUI {
         this.currentUsername = localStorage.getItem('currentUsername') || 'Guest User';
         this.bookings = [];
         this.selectedStatus = 'all'; // Default to show all bookings
+        this.pendingStatusChange = {
+            bookingId: null,
+            element: null,
+            originalValue: null,
+            newValue: null
+        };
+        this.displayMode = 'table';
 
         // Initialize controllers
         this.initControllers();
@@ -42,12 +49,28 @@ class CleanerBookingsUI {
      * Initialize DOM element references
      */
     initDomElements() {
+        // Card view elements
         this.bookingsContainer = document.getElementById('cleaner-bookings-container');
         this.loadingIndicator = document.getElementById('bookings-loading');
         this.statusFilter = document.getElementById('booking-status-filter');
         this.noBookingsMessage = document.getElementById('no-bookings-message');
         this.bookingDetailsModal = document.getElementById('booking-details-modal');
         this.closeModalBtn = document.getElementById('close-booking-modal');
+
+        // Table view elements
+        this.bookingsTable = document.getElementById('bookings-table');
+        this.tableBody = document.getElementById('bookings-table-body');
+        this.statusConfirmModal = document.getElementById('status-confirm-modal');
+        this.modalMessage = document.getElementById('modal-message');
+        this.modalConfirmBtn = document.getElementById('modal-confirm');
+        this.modalCancelBtn = document.getElementById('modal-cancel');
+
+        // Search elements
+        this.searchInput = document.getElementById('search-input');
+        this.searchBtn = document.getElementById('search-btn');
+
+        // Display toggle elements (if they exist)
+        this.displayToggleBtn = document.getElementById('display-toggle-btn');
     }
 
     /**
@@ -62,12 +85,42 @@ class CleanerBookingsUI {
             });
         }
 
-        // Close modal button
+        // Close modal button for details modal
         if (this.closeModalBtn) {
             this.closeModalBtn.addEventListener('click', () => this.closeBookingModal());
         }
 
-        // Document-level event delegation for booking cards
+        // Status confirmation modal buttons
+        if (this.modalConfirmBtn) {
+            this.modalConfirmBtn.addEventListener('click', () => this.confirmStatusChange());
+        }
+
+        if (this.modalCancelBtn) {
+            this.modalCancelBtn.addEventListener('click', () => this.cancelStatusChange());
+        }
+
+        // Search functionality
+        if (this.searchBtn) {
+            this.searchBtn.addEventListener('click', () => this.performSearch());
+        }
+
+        if (this.searchInput) {
+            this.searchInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    this.performSearch();
+                }
+            });
+        }
+
+        // Display toggle button (if it exists)
+        if (this.displayToggleBtn) {
+            this.displayToggleBtn.addEventListener('click', () => {
+                this.displayMode = this.displayMode === 'cards' ? 'table' : 'cards';
+                this.displayBookings();
+            });
+        }
+
+        // Document-level event delegation for booking cards and status dropdowns
         document.addEventListener('click', (event) => {
             // Approve booking button
             if (event.target.classList.contains('approve-booking-btn')) {
@@ -85,6 +138,27 @@ class CleanerBookingsUI {
                 this.showBookingDetails(bookingId);
             }
         });
+
+        // Add event listeners for status dropdowns (for table view)
+        document.addEventListener('change', (event) => {
+            if (event.target.classList.contains('status-select')) {
+                const bookingId = event.target.getAttribute('data-booking-id');
+                const newStatus = event.target.value;
+                const originalValue = event.target.getAttribute('data-original-value') ||
+                    Array.from(event.target.options).find(opt => opt.defaultSelected).value;
+
+                // Store pending change data
+                this.pendingStatusChange = {
+                    bookingId,
+                    element: event.target,
+                    originalValue,
+                    newValue: newStatus
+                };
+
+                // Show confirmation modal
+                this.showConfirmationModal(this.formatStatus(newStatus));
+            }
+        });
     }
 
     /**
@@ -93,9 +167,7 @@ class CleanerBookingsUI {
     async loadBookings() {
         try {
             // Show loading indicator
-            if (this.loadingIndicator) {
-                this.loadingIndicator.style.display = 'block';
-            }
+            this.showLoadingState();
 
             // Get bookings from controller
             const result = await this.getBookingsController.getProviderBookings(this.currentUserId);
@@ -103,6 +175,19 @@ class CleanerBookingsUI {
             if (result.success) {
                 this.bookings = result.data;
                 console.log(`Loaded ${this.bookings.length} bookings`);
+
+                // Clear search input
+                if (this.searchInput) {
+                    this.searchInput.value = '';
+                }
+
+                // Remove any existing "no results" message
+                const existingNoResults = document.querySelector('.no-results');
+                if (existingNoResults) {
+                    existingNoResults.remove();
+                }
+
+                // Display bookings based on current display mode
                 this.displayBookings();
             } else {
                 throw new Error(result.error || 'Failed to load bookings');
@@ -112,20 +197,30 @@ class CleanerBookingsUI {
             this.showErrorMessage('Failed to load bookings. Please try again later.');
         } finally {
             // Hide loading indicator
-            if (this.loadingIndicator) {
-                this.loadingIndicator.style.display = 'none';
-            }
+            this.hideLoadingState();
         }
     }
 
     /**
-     * Display bookings with optional filtering
+     * Display bookings with optional filtering - chooses between card and table display
      */
     displayBookings() {
-        if (!this.bookingsContainer) return;
+        // Check if we have bookings to display
+        if (!this.bookings || this.bookings.length === 0) {
+            if (this.noBookingsMessage) {
+                this.noBookingsMessage.style.display = 'block';
+            }
 
-        // Clear current content
-        this.bookingsContainer.innerHTML = '';
+            if (this.bookingsTable) {
+                this.bookingsTable.style.display = 'none';
+            }
+
+            if (this.bookingsContainer) {
+                this.bookingsContainer.style.display = 'none';
+            }
+
+            return;
+        }
 
         // Filter bookings by selected status
         let filteredBookings = this.bookings;
@@ -133,7 +228,7 @@ class CleanerBookingsUI {
             filteredBookings = this.bookings.filter(booking => booking.status === this.selectedStatus);
         }
 
-        // Check if we have bookings to display
+        // Check if we have filtered bookings to display
         if (filteredBookings.length === 0) {
             if (this.noBookingsMessage) {
                 this.noBookingsMessage.style.display = 'block';
@@ -141,6 +236,15 @@ class CleanerBookingsUI {
                     ? 'You have no bookings yet.'
                     : `You have no ${this.selectedStatus} bookings.`;
             }
+
+            if (this.bookingsTable) {
+                this.bookingsTable.style.display = 'none';
+            }
+
+            if (this.bookingsContainer) {
+                this.bookingsContainer.style.display = 'none';
+            }
+
             return;
         }
 
@@ -163,10 +267,90 @@ class CleanerBookingsUI {
             return dateA - dateB; // Ascending order (upcoming first)
         });
 
+        console.log('Display mode:', this.displayMode);
+console.log('Filtered bookings:', filteredBookings);
+console.log('DOM elements exist:', {
+    bookingsContainer: !!this.bookingsContainer,
+    tableBody: !!this.tableBody,
+    bookingsTable: !!this.bookingsTable
+});
+        // Display bookings based on current mode
+        if (this.displayMode === 'table' && this.tableBody && this.bookingsTable) {
+            // Show table view, hide card view
+            if (this.bookingsContainer) {
+                this.bookingsContainer.style.display = 'none';
+            }
+
+            this.bookingsTable.style.display = 'table';
+            this.displayBookingsTable(filteredBookings);
+        } else if (this.bookingsContainer) {
+            // Show card view, hide table view
+            if (this.bookingsTable) {
+                this.bookingsTable.style.display = 'none';
+            }
+
+            this.bookingsContainer.style.display = 'block';
+            this.displayBookingsCards(filteredBookings);
+        }
+    }
+
+    /**
+     * Display bookings in card format
+     */
+    displayBookingsCards(filteredBookings) {
+        if (!this.bookingsContainer) return;
+
+        // Clear current content
+        this.bookingsContainer.innerHTML = '';
+
         // Create booking cards
         filteredBookings.forEach(booking => {
             const card = this.createBookingCard(booking);
             this.bookingsContainer.appendChild(card);
+        });
+    }
+
+    /**
+     * Display bookings in table format
+     */
+    displayBookingsTable(filteredBookings) {
+        if (!this.tableBody) return;
+
+        // Clear table body
+        this.tableBody.innerHTML = '';
+
+        // Create rows for each booking
+        filteredBookings.forEach(booking => {
+            const row = document.createElement('tr');
+
+            // Add class for completed bookings
+            if (booking.status === 'completed' || booking.status === 'cancelled') {
+                row.classList.add('completed-row');
+            }
+
+            // Format date and time
+            const formattedDate = this.formatDate(booking.scheduled_date);
+            const formattedTime = this.formatTime(booking.scheduled_time);
+
+            // Limit description length
+            const shortDescription = booking.service_description
+                ? (booking.service_description.length > 50
+                    ? booking.service_description.substring(0, 50) + '...'
+                    : booking.service_description)
+                : 'No description';
+
+            // Create row content
+            row.innerHTML = `
+                <td>${booking.listing_id || '—'}</td>
+                <td>${booking.service_title || 'Unnamed Service'}</td>
+                <td title="${booking.service_description || ''}">${shortDescription}</td>
+                <td>${formattedDate}</td>
+                <td>${formattedTime}</td>
+                <td>${booking.client_name || 'Unknown'}</td>
+                <td>${this.createStatusDropdown(booking)}</td>
+            `;
+
+            this.tableBody.appendChild(row);
         });
     }
 
@@ -233,6 +417,39 @@ class CleanerBookingsUI {
     }
 
     /**
+     * Create status dropdown based on booking status
+     */
+    createStatusDropdown(booking) {
+        const isDisabled = booking.status === 'completed' || booking.status === 'cancelled';
+        const statuses = [
+            { value: 'pending_approval', text: 'Pending Approval' },
+            { value: 'approved', text: 'Approved' },
+            { value: 'completed', text: 'Completed' },
+            { value: 'cancelled', text: 'Cancelled' }
+        ];
+
+        // Create select element
+        const selectHtml = `
+            <select
+                class="status-select"
+                data-booking-id="${booking.booking_id}"
+                ${isDisabled ? 'disabled' : ''}
+            >
+                ${statuses.map(status => `
+                    <option
+                        value="${status.value}"
+                        ${booking.status === status.value ? 'selected' : ''}
+                    >
+                        ${status.text}
+                    </option>
+                `).join('')}
+            </select>
+        `;
+
+        return selectHtml;
+    }
+
+    /**
      * Get human-readable status label
      */
     getStatusLabel(status) {
@@ -246,14 +463,24 @@ class CleanerBookingsUI {
     }
 
     /**
-     * Update a booking status
+     * Format status for display
+     */
+    formatStatus(status) {
+        return this.getStatusLabel(status);
+    }
+
+    /**
+     * Update a booking status - works for both card and table views
      */
     async updateBookingStatus(bookingId, newStatus) {
         try {
-            // Confirm the action
-            const statusAction = newStatus === 'approved' ? 'approve' : 'mark as completed';
-            if (!confirm(`Are you sure you want to ${statusAction} this booking?`)) {
-                return;
+            // For table view with dropdowns, we already have the confirmation from modal
+            // For card view with buttons, confirm the action here
+            if (this.displayMode === 'cards') {
+                const statusAction = newStatus === 'approved' ? 'approve' : 'mark as completed';
+                if (!confirm(`Are you sure you want to ${statusAction} this booking?`)) {
+                    return;
+                }
             }
 
             // Show loading state
@@ -282,8 +509,21 @@ class CleanerBookingsUI {
         } catch (error) {
             console.error('Error updating booking status:', error);
             this.showNotification(`Failed to update booking: ${error.message}`, 'error');
+
+            // Revert dropdown to original value if in table view
+            if (this.pendingStatusChange.element && this.pendingStatusChange.originalValue) {
+                this.pendingStatusChange.element.value = this.pendingStatusChange.originalValue;
+            }
         } finally {
             this.hideLoadingState();
+
+            // Clear pending change
+            this.pendingStatusChange = {
+                bookingId: null,
+                element: null,
+                originalValue: null,
+                newValue: null
+            };
         }
     }
 
@@ -400,7 +640,10 @@ class CleanerBookingsUI {
      * Set up action buttons in the detail modal
      */
     setupDetailActionButtons(booking) {
+        if (!this.bookingDetailsModal) return;
+
         const modalContent = this.bookingDetailsModal.querySelector('.modal-content');
+        if (!modalContent) return;
 
         // Approve button
         const approveBtn = modalContent.querySelector('.approve-detail-btn');
@@ -431,7 +674,166 @@ class CleanerBookingsUI {
     }
 
     /**
-     * Format date for display (moved from controller)
+     * Show confirmation modal for status changes (used in table view)
+     */
+    showConfirmationModal(newStatusText) {
+        if (!this.statusConfirmModal || !this.modalMessage) return;
+
+        this.modalMessage.textContent = `Are you sure you want to change this booking to "${newStatusText}" status?`;
+        this.statusConfirmModal.style.display = 'flex';
+    }
+
+    /**
+     * Confirm status change from modal
+     */
+    confirmStatusChange() {
+        // Hide modal
+        if (this.statusConfirmModal) {
+            this.statusConfirmModal.style.display = 'none';
+        }
+
+        // Proceed with status update
+        if (this.pendingStatusChange.bookingId && this.pendingStatusChange.newValue) {
+            this.updateBookingStatus(
+                this.pendingStatusChange.bookingId,
+                this.pendingStatusChange.newValue
+            );
+        }
+    }
+
+    /**
+     * Cancel status change from modal
+     */
+    cancelStatusChange() {
+        // Hide modal
+        if (this.statusConfirmModal) {
+            this.statusConfirmModal.style.display = 'none';
+        }
+
+        // Revert select to original value
+        if (this.pendingStatusChange.element && this.pendingStatusChange.originalValue) {
+            this.pendingStatusChange.element.value = this.pendingStatusChange.originalValue;
+        }
+
+        // Clear pending change
+        this.pendingStatusChange = {
+            bookingId: null,
+            element: null,
+            originalValue: null,
+            newValue: null
+        };
+    }
+
+    /**
+     * Perform search on bookings
+     */
+    performSearch() {
+        if (!this.searchInput) return;
+
+        const query = this.searchInput.value.trim().toLowerCase();
+
+        // Skip empty searches
+        if (!query) {
+            this.displayBookings();
+            return;
+        }
+
+        // If in table view, search in the table rows
+        if (this.displayMode === 'table' && this.tableBody) {
+            // Get all table rows
+            const rows = this.tableBody.querySelectorAll('tr');
+            let matchFound = false;
+
+            // Show all rows first (in case there was a previous search)
+            rows.forEach(row => {
+                row.style.display = '';
+            });
+
+            // Hide rows that don't match the search
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    matchFound = true;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            this.handleSearchResults(matchFound, query, rows.length);
+        }
+        // If in card view, filter the bookings array
+        else if (this.bookingsContainer) {
+            // Filter bookings
+            const filteredBookings = this.bookings.filter(booking => {
+                const searchableText = `
+                    ${booking.service_title || ''}
+                    ${booking.service_description || ''}
+                    ${booking.client_name || ''}
+                    ${booking.scheduled_date || ''}
+                    ${booking.scheduled_time || ''}
+                    ${this.getStatusLabel(booking.status)}
+                `.toLowerCase();
+
+                return searchableText.includes(query);
+            });
+
+            // Clear current content
+            this.bookingsContainer.innerHTML = '';
+
+            // Show filtered results
+            if (filteredBookings.length > 0) {
+                filteredBookings.forEach(booking => {
+                    const card = this.createBookingCard(booking);
+                    this.bookingsContainer.appendChild(card);
+                });
+
+                // Remove any existing "no results" message
+                const existingNoResults = document.querySelector('.no-results');
+                if (existingNoResults) {
+                    existingNoResults.remove();
+                }
+            } else {
+                this.handleSearchResults(false, query, this.bookings.length);
+            }
+        }
+    }
+
+    /**
+     * Handle search results - show "no results" message if needed
+     */
+    handleSearchResults(matchFound, query, totalItems) {
+        // Show message if no matches
+        const existingNoResults = document.querySelector('.no-results');
+        if (existingNoResults) {
+            existingNoResults.remove();
+        }
+
+        if (totalItems > 0 && !matchFound) {
+            const noResultsDiv = document.createElement('div');
+            noResultsDiv.className = 'no-results';
+            noResultsDiv.innerHTML = `
+                <p>No bookings match your search for "${query}"</p>
+                <button class="btn" onclick="document.querySelector('.search-input').value = ''; 
+                                          new CleanerBookingsUI().loadBookings();">Show All</button>
+            `;
+
+            // Insert after bookings container or table
+            const parent = (this.displayMode === 'table' && this.bookingsTable)
+                ? this.bookingsTable.parentNode
+                : (this.bookingsContainer ? this.bookingsContainer.parentNode : document.body);
+
+            const insertAfter = this.displayMode === 'table' ? this.bookingsTable : this.bookingsContainer;
+
+            if (parent && insertAfter) {
+                parent.insertBefore(noResultsDiv, insertAfter.nextSibling);
+            } else {
+                document.body.appendChild(noResultsDiv);
+            }
+        }
+    }
+
+    /**
+     * Format date for display
      */
     formatDate(dateString) {
         if (!dateString) return 'N/A';
@@ -443,7 +845,7 @@ class CleanerBookingsUI {
     }
 
     /**
-     * Format time for display (moved from controller)
+     * Format time for display
      */
     formatTime(timeString) {
         if (!timeString) return 'N/A';
@@ -488,20 +890,6 @@ class CleanerBookingsUI {
     }
 
     /**
-     * Show error message in the bookings container
-     */
-    showErrorMessage(message) {
-        if (this.bookingsContainer) {
-            this.bookingsContainer.innerHTML = `
-                <div class="error-message">
-                    <p>${message}</p>
-                    <button class="btn retry-btn" onclick="window.location.reload()">Retry</button>
-                </div>
-            `;
-        }
-    }
-
-    /**
      * Show loading state
      */
     showLoadingState() {
@@ -521,9 +909,16 @@ class CleanerBookingsUI {
      * Hide loading state
      */
     hideLoadingState() {
+        // Hide the dynamically created loading overlay
         const loadingOverlay = document.getElementById('loading-overlay');
         if (loadingOverlay) {
             loadingOverlay.style.display = 'none';
+        }
+
+        // Also hide the static loading indicator from HTML
+        const staticLoadingIndicator = document.getElementById('bookings-loading');
+        if (staticLoadingIndicator) {
+            staticLoadingIndicator.style.display = 'none';
         }
     }
 

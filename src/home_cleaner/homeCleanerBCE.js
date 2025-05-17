@@ -175,6 +175,78 @@ class readServicePage{
         }
     }
 
+    // Formats prices as Singapore dollars (S$) with exactly two decimal places
+    formatPrice(price) {
+        const priceNum = typeof price === 'string' ? parseFloat(price) : price;
+        return !isNaN(priceNum) ? `S$${priceNum.toFixed(2)}` : 'Price not available';
+    }
+
+    // Map category to filter value
+    getCategoryFilter(category) {
+        if (!category) return 'all';
+
+        category = category.toLowerCase();
+        const filterMap = {
+            'home': 'home',
+            'office': 'office',
+            'carpet': 'carpet',
+            'window': 'windows',
+            'deep': 'deep'
+        };
+
+        for (const [key, value] of Object.entries(filterMap)) {
+            if (category.includes(key)) return value;
+        }
+
+        return 'all';
+    }
+
+    // Get default image if none provided
+    getDefaultImage() {
+        return 'https://placehold.co/600x400?text=Cleaning+Service';
+    }
+
+    // Check if user is the owner of the service listing
+    isServiceOwner(serviceUserId) {
+        const currentUserId = localStorage.getItem('currentUserId');
+        return serviceUserId === currentUserId;
+    }
+
+    // Get provider name - use first priority field or fallback to alternatives
+    getProviderName(service) {
+        // First try the joined provider_name field
+        if (service.provider_name) {
+            return service.provider_name;
+        }
+
+        // Next try to create it from first_name and last_name if available
+        if (service.first_name && service.last_name) {
+            return `${service.first_name} ${service.last_name}`;
+        }
+
+        // Fallback to user_id if no name is available
+        if (service.user_id) {
+            return `Provider ${service.user_id}`;
+        }
+
+        // Last resort
+        return 'Unknown Provider';
+    }
+
+    // Prepare raw service data into a standardized format for display
+    prepareServiceForDisplay(service) {
+        return {
+            id: service.listing_id || '0',
+            title: service.title || 'Unnamed Service',
+            description: service.description || 'No description available',
+            formattedPrice: this.formatPrice(service.price),
+            imageUrl: service.image_path || this.getDefaultImage(),
+            category: service.category_name || service.category || 'Uncategorized',
+            providerName: this.getProviderName(service),
+            filterCategory: this.getCategoryFilter(service.category_name || service.category),
+            isOwner: this.isServiceOwner(service.user_id)
+        };
+    }
 
     renderServiceCards(services, showManagementControls = false) {
         this.servicesContainer.innerHTML = '';
@@ -182,7 +254,7 @@ class readServicePage{
 
         services.forEach(service => {
             // Process service data
-            const processedService = this.controller.prepareServiceForDisplay(service);
+            const processedService = this.prepareServiceForDisplay(service);
 
             // Create card
             const card = template.content.cloneNode(true).querySelector('.service-card');
@@ -195,8 +267,6 @@ class readServicePage{
             card.querySelector('.service-price').textContent = processedService.formattedPrice;
             card.querySelector('.service-description').textContent = processedService.description;
             card.querySelector('.tag').textContent = processedService.category;
-
-
 
             // Handle card buttons based on what page we're on
             const cardButtons = card.querySelector('.card-buttons');
@@ -361,79 +431,6 @@ class readServiceController {
         return { success: false, error: error.message };
     }
 }
-
-    // Map category to filter value
-    getCategoryFilter(category) {
-        if (!category) return 'all';
-
-        category = category.toLowerCase();
-        const filterMap = {
-            'home': 'home',
-            'office': 'office',
-            'carpet': 'carpet',
-            'window': 'windows',
-            'deep': 'deep'
-        };
-
-        for (const [key, value] of Object.entries(filterMap)) {
-            if (category.includes(key)) return value;
-        }
-
-        return 'all';
-    }
-
-    // Formats prices as Singapore dollars (S$) with exactly two decimal places
-    formatPrice(price) {
-        const priceNum = typeof price === 'string' ? parseFloat(price) : price;
-        return !isNaN(priceNum) ? `S$${priceNum.toFixed(2)}` : 'Price not available';
-    }
-
-    // Check if user is the owner of the service listing
-    isServiceOwner(serviceUserId) {
-        const currentUserId = localStorage.getItem('currentUserId');
-        return serviceUserId === currentUserId;
-    }
-
-    // Get default image if none provided
-    getDefaultImage() {
-        return 'https://placehold.co/600x400?text=Cleaning+Service';
-    }
-
-    // Get provider name - use first priority field or fallback to alternatives
-    getProviderName(service) {
-        // First try the joined provider_name field
-        if (service.provider_name) {
-            return service.provider_name;
-        }
-
-        // Next try to create it from first_name and last_name if available
-        if (service.first_name && service.last_name) {
-            return `${service.first_name} ${service.last_name}`;
-        }
-
-        // Fallback to user_id if no name is available
-        if (service.user_id) {
-            return `Provider ${service.user_id}`;
-        }
-
-        // Last resort
-        return 'Unknown Provider';
-    }
-
-    // Prepare raw service data into a standardized format for display
-    prepareServiceForDisplay(service) {
-        return {
-            id: service.listing_id || '0',
-            title: service.title || 'Unnamed Service',
-            description: service.description || 'No description available',
-            formattedPrice: this.formatPrice(service.price),
-            imageUrl: service.image_path || this.getDefaultImage(),
-            category: service.category_name || service.category || 'Uncategorized',
-            providerName: this.getProviderName(service),
-            filterCategory: this.getCategoryFilter(service.category_name || service.category),
-            isOwner: this.isServiceOwner(service.user_id)
-        };
-    }
 }
 
 
@@ -1259,16 +1256,16 @@ class service{
 
         if (result.success) {
             console.log('Successfully updated listing');
-            return { success: true, data: result.data };
+            return { success: true};
         } else {
             // Enhanced error logging
             console.error('Failed to update service. Server response:', result);
             console.error('Attempted to update listing with ID:', listingId);
-            return { success: false, error: result.message };
+            return { success: false};
         }
     } catch (error) {
         console.error('Error updating service:', error);
-        return { success: false, error: error.message };
+        return { success: false };
     }
 }
 

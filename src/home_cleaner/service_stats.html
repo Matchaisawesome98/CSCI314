@@ -313,46 +313,6 @@
   </main>
 
   <div id="notification" style="display: none;"></div>
-
-  <script>
-    // Function to initialize user information
-    function initUserInfo() {
-      // Get the stored username or use a default
-      const currentUserId = localStorage.getItem('currentUserId') || 'guest';
-      const currentUsername = localStorage.getItem('currentUsername') || 'Guest User';
-
-      console.log('Initializing user info:', { currentUserId, currentUsername });
-
-      // Update all username display elements
-      const usernameElements = [
-        document.getElementById('username-display')
-      ];
-
-      usernameElements.forEach(element => {
-        if (element) {
-          element.textContent = currentUsername;
-        }
-      });
-
-      // Set avatar initial (first letter of username)
-      const userAvatar = document.getElementById('user-avatar');
-      if (userAvatar) {
-        userAvatar.textContent = currentUsername.charAt(0).toUpperCase();
-      }
-    }
-
-    // Run initialization when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-      // If no user ID is stored, set a default one for testing
-      if (!localStorage.getItem('currentUserId')) {
-        localStorage.setItem('currentUserId', 'user01');
-        localStorage.setItem('currentUsername', 'Guest User');
-      }
-
-      // Initialize the user info regardless
-      initUserInfo();
-    });
-  </script>
   <script src="service_stats.js"></script>
 </body>
 </html>
