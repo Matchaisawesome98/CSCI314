@@ -1,5 +1,4 @@
-// platformManager.js - Manages service categories for CleanConnect
-
+// ===================== BOUNDARY LAYER =====================
 /**
  * CategoryManagementUI - Boundary class responsible for UI interactions
  * Handles all DOM interactions and UI updates for category management
@@ -661,7 +660,6 @@ class CategoryManagementUI {
 }
 
 // ===================== CONTROLLER LAYER =====================
-// Each controller handles specific operations and business logic
 
 /**
  * Controller for getting categories

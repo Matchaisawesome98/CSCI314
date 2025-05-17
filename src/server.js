@@ -3007,6 +3007,64 @@ app.get('/api/categories/:categoryCode/in-use', async (req, res) => {
     }
 });
 
+//daily revenue check
+app.get('/api/stats/daily-revenue', async (req, res) => {
+    try {
+        // Get the date parameter, defaulting to today
+        const dateParam = req.query.date || new Date().toISOString().split('T')[0];
+        console.log(`Fetching daily revenue for date: ${dateParam}`);
+
+        const connection = await mysql2Promise.createConnection(dbConfig);
+
+        // Query to get revenue by category for completed bookings on the specified date
+        const query = `
+            SELECT 
+                c.category_code, 
+                c.category_name, 
+                COALESCE(SUM(l.price), 0) as daily_revenue,
+                COUNT(b.booking_id) as completed_bookings
+            FROM 
+                categories c
+            LEFT JOIN (
+                listings l 
+                JOIN service_bookings b ON l.listing_id = b.listing_id AND b.status = 'completed' 
+                    AND DATE(b.scheduled_date) = ?
+            ) ON l.category_name = c.category_name
+            GROUP BY 
+                c.category_code, c.category_name
+            ORDER BY 
+                daily_revenue DESC, c.category_name ASC
+        `;
+
+        const [rows] = await connection.execute(query, [dateParam]);
+        await connection.end();
+
+        // Format the response to ensure all categories are included
+        const response = rows.map(row => ({
+            category_code: row.category_code,
+            category_name: row.category_name,
+            daily_revenue: parseFloat(row.daily_revenue) || 0,
+            completed_bookings: row.completed_bookings || 0
+        }));
+
+        res.json({
+            success: true,
+            date: dateParam,
+            data: response,
+            total_revenue: response.reduce((sum, item) => sum + item.daily_revenue, 0),
+            total_completed_bookings: response.reduce((sum, item) => sum + item.completed_bookings, 0)
+        });
+    } catch (error) {
+        console.error('Error fetching daily revenue stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch daily revenue statistics',
+            error: error.message
+        });
+    }
+});
+
+
 // Test endpoint
 app.get('/test', (req, res) => {
     res.json({ message: 'Server is running' });
