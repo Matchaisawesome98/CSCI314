@@ -186,20 +186,34 @@ class readServicePage{
         if (!category) return 'all';
 
         category = category.toLowerCase();
-        const filterMap = {
-            'home': 'home',
-            'office': 'office',
-            'carpet': 'carpet',
-            'window': 'windows',
-            'deep': 'deep'
-        };
 
-        for (const [key, value] of Object.entries(filterMap)) {
-            if (category.includes(key)) return value;
+        // Check if we have dynamic categories loaded from the database
+        if (window.dynamicFilters && window.dynamicFilters.categories.length > 0) {
+            // Try to match with loaded dynamic categories
+            for (const dbCategory of window.dynamicFilters.categories) {
+                const categoryName = dbCategory.category_name.toLowerCase();
+                if (category.includes(categoryName) || categoryName.includes(category)) {
+                    // Use the first word of the category as the filter value
+                    return categoryName.split(' ')[0];
+                }
+            }
         }
 
-        return 'all';
+    // Fallback to the original static mapping if no match is found
+    const filterMap = {
+        'home': 'home',
+        'office': 'office',
+        'carpet': 'carpet',
+        'window': 'windows',
+        'deep': 'deep'
+    };
+
+    for (const [key, value] of Object.entries(filterMap)) {
+        if (category.includes(key)) return value;
     }
+
+    return 'all';
+}
 
     // Get default image if none provided
     getDefaultImage() {
