@@ -65,16 +65,25 @@ class shortListUI {
         this.serviceCards = document.querySelectorAll('.service-card');
         console.log(`Found ${this.serviceCards.length} service cards`);
 
-        // Find search-related elements
-        this.searchInput = document.getElementById('search-input');
-        this.searchBtn = document.getElementById('search-btn');
-        this.servicesContainer = document.getElementById('services-container');
+        // Skip search-related elements on homepage
+        const isHomePage = window.location.pathname.includes('homePage.html') ||
+                           window.location.pathname === '/' ||
+                           window.location.pathname.endsWith('/');
 
-        // Initialize search UI elements if on shortlist page
-        if (this.searchInput && this.searchBtn) {
-            this.setupSearchUI();
+        if (!isHomePage) {
+            // Find search-related elements
+            this.searchInput = document.getElementById('search-input');
+            this.searchBtn = document.getElementById('search-btn');
+            this.servicesContainer = document.getElementById('services-container');
+
+            // Initialize search UI elements if on shortlist page
+            if (this.searchInput && this.searchBtn && this.isShortlistPage) {
+                this.setupSearchUI();
+            }
         }
     }
+
+
 
     setupEventListeners() {
         // Set up event delegation for shortlist button clicks
@@ -88,7 +97,11 @@ class shortListUI {
         console.log('Event listeners set up');
 
         // Setup search event listeners if on shortlist page
-        if (this.searchInput && this.searchBtn) {
+        const isHomePage = window.location.pathname.includes('homePage.html') ||
+                           window.location.pathname === '/' ||
+                           window.location.pathname.endsWith('/');
+
+        if (this.searchInput && this.searchBtn && !isHomePage) {
             this.setupSearchEventListeners();
         }
     }
@@ -126,6 +139,14 @@ class shortListUI {
     // Setup search-related event listeners
     setupSearchEventListeners() {
         console.log('Setting up search event listeners');
+
+        // Skip search setup on homepage
+        if (window.location.pathname.includes('homePage.html') ||
+            window.location.pathname === '/' ||
+            window.location.pathname.endsWith('/')) {
+            console.log('On homepage, skipping shortlist search event listener setup');
+            return;
+        }
 
         // Search button click
         this.searchBtn.addEventListener('click', () => {

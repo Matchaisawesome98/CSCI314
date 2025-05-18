@@ -556,6 +556,11 @@
         if (userRole === 'home_owner') {
             const addServiceBtn = document.getElementById('add-service-btn');
             const myListingsBtn = document.getElementById('my-listings-btn');
+            const manageBookingsBtn = document.getElementById('manage-bookings-btn');
+
+            if (manageBookingsBtn) {
+                manageBookingsBtn.style.display = 'none';
+            }
 
             if (addServiceBtn) {
                 addServiceBtn.style.display = 'none';
