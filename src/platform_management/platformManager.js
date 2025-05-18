@@ -21,6 +21,9 @@ class CategoryManagementUI {
         this.initDomElements();
         this.setupEventListeners();
 
+        // Initialize user display
+        this.initUserDisplay();
+
         // Load categories
         this.loadCategories();
     }
@@ -52,6 +55,27 @@ class CategoryManagementUI {
 
         // Create clear search button if it doesn't exist yet
         this.setupClearSearchButton();
+    }
+
+    /**
+     * Shows user's first name and last name
+     */
+    initUserDisplay() {
+        // Update username display
+        const usernameDisplay = document.getElementById('username-display');
+        const userAvatarElem = document.getElementById('user-avatar');
+
+        if (usernameDisplay) {
+            const currentUsername = localStorage.getItem('currentUsername');
+            if (currentUsername) {
+                usernameDisplay.textContent = currentUsername;
+
+                // Update avatar with first letter of username
+                if (userAvatarElem && currentUsername.length > 0) {
+                    userAvatarElem.textContent = currentUsername.charAt(0).toUpperCase();
+                }
+            }
+        }
     }
 
     /**

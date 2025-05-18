@@ -17,7 +17,7 @@ class UserAdminEntity {
         };
         this.API_BASE_URL = API_BASE_URL;
     }
-    
+
     // Create a new user object
     createUser(userData) {
         return {
@@ -29,22 +29,22 @@ class UserAdminEntity {
             password: userData.password || ''
         };
     }
-    
+
     // API call to check server status
     async checkServerStatus() {
         try {
             const response = await fetch(`${this.API_BASE_URL}/test`);
             if (response.ok) {
-                return { isOnline: true };
+                return {isOnline: true};
             } else {
-                return { isOnline: false, message: 'Server error' };
+                return {isOnline: false, message: 'Server error'};
             }
         } catch (error) {
             console.error('Server connection error:', error);
-            return { isOnline: false, message: 'Server offline' };
+            return {isOnline: false, message: 'Server offline'};
         }
     }
-    
+
     // API call to add new user
     async addUser(user) {
         try {
@@ -55,13 +55,13 @@ class UserAdminEntity {
                 },
                 body: JSON.stringify(user)
             });
-            
+
             return await response.json();
         } catch (error) {
-            return { success: false, message: error.message };
+            return {success: false, message: error.message};
         }
     }
-    
+
     // API call to fetch all users
     async fetchAllUsers() {
         try {
@@ -70,13 +70,13 @@ class UserAdminEntity {
             return data;
         } catch (error) {
             console.error('Error fetching users:', error);
-            return { 
-                success: false, 
+            return {
+                success: false,
                 message: `Error fetching users: ${error.message}`
             };
         }
     }
-    
+
     // API call to fetch a specific user by ID
     async fetchUserById(userId) {
         try {
@@ -85,26 +85,37 @@ class UserAdminEntity {
             return data;
         } catch (error) {
             return {
-                success: false, 
+                success: false,
                 message: `Error fetching user: ${error.message}`
             };
         }
     }
-    
+
     // API call to update a user
     async updateUser(userId, userData) {
         try {
+            console.log('Entity preparing to update user:', userId);
+
+            // Final safety check - remove any problematic fields
+            const cleanedData = {...userData};
+            delete cleanedData.login_status;
+            delete cleanedData.last_login;
+
+            console.log('Entity sending final data:', JSON.stringify(cleanedData));
+
             const response = await fetch(`${this.API_BASE_URL}/update-user/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(userData)
+                body: JSON.stringify(cleanedData)
             });
-            
+
             const data = await response.json();
+            console.log('Server response:', data);
             return data;
         } catch (error) {
+            console.error('Error updating user:', error);
             return {
                 success: false,
                 message: `Error updating user: ${error.message}`
@@ -164,7 +175,23 @@ class Edit_users_as_UserAdmin_Controller{
         this.entity = entity || new UserAdminEntity();
     }
         async updateUser(userId, userData) {
-        return await this.entity.updateUser(userId, userData);
+        // Ensure data is clean before passing to entity
+        // Explicitly remove problematic fields
+        const cleanedData = { ...userData };
+
+        // Remove these fields entirely
+        delete cleanedData.login_status;
+        delete cleanedData.last_login;
+
+        // Ensure isSuspended is a number
+        if ('isSuspended' in cleanedData) {
+            cleanedData.isSuspended = cleanedData.isSuspended ? 1 : 0;
+        }
+
+        console.log('Controller sending clean data:', cleanedData);
+
+        // Pass clean data to entity
+        return await this.entity.updateUser(userId, cleanedData);
     }
 }
 
@@ -725,7 +752,7 @@ class Edit_users_as_UserAdmin_Boundary {
         this.userNameField = document.getElementById('userName');
         this.formFields = document.getElementById('formFields');
         this.View_all_users_as_UserAdmin_boundary = new View_all_users_as_UserAdmin_boundary(); // Reference to ViewUI for table updates
-        
+
         // If the elements exist, set up event listeners
         if (this.editUserForm) {
             // Remove any existing event listeners (to avoid duplicates)
@@ -734,7 +761,7 @@ class Edit_users_as_UserAdmin_Boundary {
             this.editUserForm.addEventListener('submit', this.handleFormSubmit.bind(this));
         }
     }
-    
+
     validateUserData(userData) {
         // Basic validation example - extend as needed
         if (userData.email && !this.isValidEmail(userData.email)) {
@@ -743,12 +770,12 @@ class Edit_users_as_UserAdmin_Boundary {
                 message: "Please enter a valid email address"
             };
         }
-        
+
         return {
             success: true
         };
     }
-    
+
     isValidEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
@@ -756,14 +783,14 @@ class Edit_users_as_UserAdmin_Boundary {
 
     showSuccess(message) {
         if (!this.statusDiv) return;
-        
+
         this.statusDiv.style.display = 'block';
         this.statusDiv.className = 'status success';
         this.statusDiv.innerHTML = message;
-        
+
         // Scroll to the status message to ensure it's visible
-        this.statusDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
+        this.statusDiv.scrollIntoView({behavior: 'smooth', block: 'center'});
+
         // Auto-hide the message after 5 seconds
         setTimeout(() => {
             this.statusDiv.style.display = 'none';
@@ -772,136 +799,172 @@ class Edit_users_as_UserAdmin_Boundary {
 
     showError(message) {
         if (!this.statusDiv) return;
-        
+
         this.statusDiv.style.display = 'block';
         this.statusDiv.className = 'status error';
         this.statusDiv.innerHTML = `Error: ${message}`;
     }
-    
+
     async openEditModal(userData) {
     try {
         // Store the user ID
         this.userIdField.value = userData.id || userData.user_id;
-        
+
         // Store the user name (or email or username, whatever is available)
         const userName = userData.name || userData.username || userData.email || `User #${this.userIdField.value}`;
         this.userNameField.value = userName;
-        
+
         // Clear previous form fields
         this.formFields.innerHTML = '';
-        
+
+        // Log current userData for debugging
+        console.log('User data for modal:', userData);
+        console.log('Current roles value:', userData.roles);
+
         // Create form fields for each property
         Object.keys(userData).forEach(key => {
-            // Skip primary key as it shouldn't be edited
-            if (key === 'id' || key === 'user_id') return;
-            
+            // Skip fields we don't want to edit at all
+            if (key === 'id' ||
+                key === 'user_id' ||
+                key === 'last_login' ||
+                key === 'login_status' ||
+                key === 'created_at' ||
+                key === 'updated_at') {
+                return;
+            }
+
             const formGroup = document.createElement('div');
             formGroup.className = 'form-group';
-            
+
             const label = document.createElement('label');
             label.htmlFor = key;
             label.textContent = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
-            
+
             let input;
-            
-            // Special handling for boolean values
-            if (key === 'isSuspended' || (typeof userData[key] === 'boolean')) {
+
+            // Special handling for isSuspended field
+            if (key === 'isSuspended') {
                 input = document.createElement('select');
+
+                // Determine current value (handle various formats)
+                let currentValue;
+                if (userData[key] === true || userData[key] === 1 || userData[key] === '1') {
+                    currentValue = '1'; // suspended
+                } else {
+                    currentValue = '0'; // not suspended
+                }
+
+                // Create options with explicit values
                 input.innerHTML = `
-                    <option value="true" ${userData[key] ? 'selected' : ''}>true</option>
-                    <option value="false" ${!userData[key] ? 'selected' : ''}>false</option>
+                    <option value="0" ${currentValue === '0' ? 'selected' : ''}>Not Suspended</option>
+                    <option value="1" ${currentValue === '1' ? 'selected' : ''}>Suspended</option>
                 `;
-            } 
-            // Special handling for roles field
+
+                console.log(`Setting isSuspended dropdown to: ${currentValue === '1' ? 'Suspended' : 'Not Suspended'} (value: ${userData[key]})`);
+            }
+            // Special handling for roles field - FIXED VERSION
             else if (key === 'roles' || key === 'role') {
                 input = document.createElement('select');
-                
-                // Define the available roles
-                const roles = ['User Admin', 'Cleaner', 'Homeowner', 'Platform Manager'];
-                
+
+                // Define the available roles with both display value and actual value
+                const roles = [
+                    { display: 'Home Owner', value: 'home_owner' },
+                    { display: 'User Admin', value: 'user_admin' },
+                    { display: 'Cleaner', value: 'cleaner' },
+                    { display: 'Platform Manager', value: 'platform_manager' }
+                ];
+
+                // Get the current role value for comparison
+                const currentRole = (userData[key] || '').toLowerCase();
+
                 // Create option elements for each role
                 const options = roles.map(role => {
-                    const isSelected = userData[key] === role;
-                    return `<option value="${role}" ${isSelected ? 'selected' : ''}>${role}</option>`;
+                    // Check if this role matches the current user's role
+                    // Compare case-insensitive and ignore spaces/underscores
+                    const normalizedCurrentRole = currentRole.replace(/[_ ]/g, '').toLowerCase();
+                    const normalizedRoleValue = role.value.replace(/[_ ]/g, '').toLowerCase();
+                    const isSelected = normalizedCurrentRole === normalizedRoleValue;
+
+                    if (isSelected) {
+                        console.log(`Matched role: ${role.value} for current value: ${userData[key]}`);
+                    }
+
+                    return `<option value="${role.value}" ${isSelected ? 'selected' : ''}>${role.display}</option>`;
                 }).join('');
-                
+
                 input.innerHTML = options;
             } else {
                 input = document.createElement('input');
                 input.type = key === 'password' ? 'password' : 'text';
                 input.value = userData[key] || '';
             }
-            
+
             input.id = key;
             input.name = key;
-            
+
             formGroup.appendChild(label);
             formGroup.appendChild(input);
             this.formFields.appendChild(formGroup);
         });
-        
+
         // Show the modal
         this.editModal.style.display = 'block';
     } catch (error) {
         this.showError(`Error opening edit modal: ${error.message}`);
     }
 }
-    
+
     closeEditModal() {
         if (!this.editModal) return;
         this.editModal.style.display = 'none';
     }
-    
+
     async handleFormSubmit(event) {
         event.preventDefault();
-        
+
         if (!this.userIdField || !this.userNameField || !this.editUserForm) return;
-        
+
         try {
             // Get the user ID and name
             const userId = this.userIdField.value;
             const userName = this.userNameField.value;
-            
-            // Collect form data
-            const formData = {};
-            const formElements = this.editUserForm.elements;
-            
-            for (let i = 0; i < formElements.length; i++) {
-                const element = formElements[i];
-                
-                // Skip buttons and hidden fields
-                if (element.type === 'button' || element.type === 'submit' || 
-                    element.id === 'userId' || element.id === 'userName') {
-                    continue;
-                }
-                
-                formData[element.name] = element.value;
+
+            // Collect only specific fields we want to update
+            // IMPORTANT: Only include fields we know are working
+            const formData = {
+                email: document.getElementById('email').value,
+                first_name: document.getElementById('first_name').value,
+                last_name: document.getElementById('last_name').value,
+                roles: document.getElementById('roles').value
+            };
+
+            // Only include isSuspended if we're changing it
+            const isSuspendedElement = document.getElementById('isSuspended');
+            if (isSuspendedElement) {
+                // Convert to number explicitly
+                formData.isSuspended = isSuspendedElement.value === "1" ? 1 : 0;
             }
-            
-            // Process boolean values (convert string representation to actual boolean)
-            Object.keys(formData).forEach(key => {
-                if (formData[key] === 'true' || formData[key] === 'false') {
-                    formData[key] = formData[key] === 'true';
-                }
-            });
-            
+
+            // IMPORTANT: Don't include login_status or last_login at all
+            console.log('Simplified data being sent to server:', JSON.stringify(formData));
+
             // Validate user data before updating
             const validation = this.validateUserData(formData);
             if (!validation.success) {
                 this.showError(validation.message);
                 return;
             }
-            
+
             // Call the controller to update the user
             const result = await this.controller.updateUser(userId, formData);
-            
+
             // Close the modal first
             this.closeEditModal();
-            
+
             if (result.success) {
                 // Display the success message
                 this.showSuccess(`<strong>Update Successful</strong> - User "${userName}" was updated.`);
-                
+
                 // Update the table row with the new data
                 this.View_all_users_as_UserAdmin_boundary.updateTableRow(userId, formData);
             } else {

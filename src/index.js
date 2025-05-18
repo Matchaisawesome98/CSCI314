@@ -84,6 +84,8 @@ class LoginUI {
         }
     }
 
+
+
     getUserInput() {
         const username = document.getElementById("username").value;
         const password = document.getElementById("password").value;
@@ -251,7 +253,7 @@ class LogoutUI {
 
     redirectToLoginPage() {
         console.log('LogoutUI: Redirecting to login page');
-        window.location.href = '../public/index.html';
+        window.location.href = '/CSCI314/public/index.html';
     }
 
     // Static initializer with explicit page load checks
@@ -353,7 +355,7 @@ class ProcessLogoutController {
                 localStorage.removeItem('shortlist');
 
                 // Navigate to login page
-                window.location.href = '../public/index.html';
+                window.location.href = '/CSCI314/public/index.html';
 
                 return result;
             } else {
@@ -377,6 +379,7 @@ class UserAuthEntity {
         this.apiBaseUrl = 'http://localhost:3000/api';
         console.log('UserAuthEntity initialized with base URL:', this.apiBaseUrl);
     }
+
 
     /**
      * Authenticate user with server
@@ -405,6 +408,17 @@ class UserAuthEntity {
                     userRole: null,
                     error: data.message,
                     activeUser: data.activeUser
+                };
+            }
+
+            // Check if user is suspended
+            if (data.isSuspended) {
+                console.log('User account is suspended');
+                return {
+                    authenticated: false,
+                    userRole: null,
+                    error: 'Your account has been suspended. Please contact an administrator.',
+                    isSuspended: true
                 };
             }
 
