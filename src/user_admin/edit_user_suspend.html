@@ -178,6 +178,7 @@
             animation: highlight-row 2s ease-in-out;
         }
     </style>
+    <script src="user_admin.js"></script>
 </head>
 <body>
 <h1>User Admin Dashboard</h1>
@@ -208,628 +209,628 @@
     </div>
 </div>
 
-<script src="../../../../Downloads/CSCI314-main/CSCI314-main/src/user_admin/user_admin.js">
-//     // Entity class - Handles data operations
-//     class ViewEntity {
-//         async fetchAllUsers() {
-//             try{
-//                 const response = await fetch('http://localhost:3000/get-homeowners');
-//                 const data = await response.json();
-//                 return data;
-//                 }catch(error){
-//                     return{
-//                 success: false, 
-//                 message: `Error fetching users: ${error.message}`
-//                     }
-//                 }
-//             }
-            
-//         async fetchUserById(userId) {
-//             try{
-//                 const response = await fetch(`http://localhost:3000/get-user/${userId}`);
-//                 const data = await response.json();
-//                 return data;
-//             }catch(error){
-//                 return{
-//                 success: false, 
-//                 message: `Error fetching users: ${error.message}`
-//                 }
-//             }
-//             }
-        
-//         async updateUser(userId, userData) {
-//             try{
-//             const response = await fetch(`http://localhost:3000/update-user/${userId}`, {
-//                 method: 'PUT',
-//                 headers: {
-//                     'Content-Type': 'application/json'
-//                 },
-//                 body: JSON.stringify(userData)
-//             });
-            
-//             const data = await response.json();
-//             return data;
-//         }catch(error){
-//             return{
-//                     success: false,
-//                     message: `Error updating user: ${error.message}`
-//             }
-//         }
-//         }
-//     }
-    
-//     // Controller class - Handles business logic
-//     class ViewController {
-//         constructor() {
-//             this.viewEntity = new ViewEntity();
-//         }
-        
-//         async getAllUsers() {
-//                 const result = await this.viewEntity.fetchAllUsers();
-//                 return result;
+<!--<script src="../../../../Downloads/CSCI314-main/CSCI314-main/src/user_admin/user_admin.js">-->
+<!--//     // Entity class - Handles data operations-->
+<!--//     class ViewEntity {-->
+<!--//         async fetchAllUsers() {-->
+<!--//             try{-->
+<!--//                 const response = await fetch('http://localhost:3000/get-homeowners');-->
+<!--//                 const data = await response.json();-->
+<!--//                 return data;-->
+<!--//                 }catch(error){-->
+<!--//                     return{-->
+<!--//                 success: false, -->
+<!--//                 message: `Error fetching users: ${error.message}`-->
+<!--//                     }-->
+<!--//                 }-->
+<!--//             }-->
+<!--            -->
+<!--//         async fetchUserById(userId) {-->
+<!--//             try{-->
+<!--//                 const response = await fetch(`http://localhost:3000/get-user/${userId}`);-->
+<!--//                 const data = await response.json();-->
+<!--//                 return data;-->
+<!--//             }catch(error){-->
+<!--//                 return{-->
+<!--//                 success: false, -->
+<!--//                 message: `Error fetching users: ${error.message}`-->
+<!--//                 }-->
+<!--//             }-->
+<!--//             }-->
+<!--        -->
+<!--//         async updateUser(userId, userData) {-->
+<!--//             try{-->
+<!--//             const response = await fetch(`http://localhost:3000/update-user/${userId}`, {-->
+<!--//                 method: 'PUT',-->
+<!--//                 headers: {-->
+<!--//                     'Content-Type': 'application/json'-->
+<!--//                 },-->
+<!--//                 body: JSON.stringify(userData)-->
+<!--//             });-->
+<!--            -->
+<!--//             const data = await response.json();-->
+<!--//             return data;-->
+<!--//         }catch(error){-->
+<!--//             return{-->
+<!--//                     success: false,-->
+<!--//                     message: `Error updating user: ${error.message}`-->
+<!--//             }-->
+<!--//         }-->
+<!--//         }-->
+<!--//     }-->
+<!--    -->
+<!--//     // Controller class - Handles business logic-->
+<!--//     class ViewController {-->
+<!--//         constructor() {-->
+<!--//             this.viewEntity = new ViewEntity();-->
+<!--//         }-->
+<!--        -->
+<!--//         async getAllUsers() {-->
+<!--//                 const result = await this.viewEntity.fetchAllUsers();-->
+<!--//                 return result;-->
 
-//         }
-        
-//         async getUserById(userId) {
-        
-//                 const result = await this.viewEntity.fetchUserById(userId);
-//                 return result;
+<!--//         }-->
+<!--        -->
+<!--//         async getUserById(userId) {-->
+<!--        -->
+<!--//                 const result = await this.viewEntity.fetchUserById(userId);-->
+<!--//                 return result;-->
 
-//         }
-        
-//         async updateUser(userId, userData) {
-          
-//                 const result = await this.viewEntity.updateUser(userId, userData);
-//                 return result;
+<!--//         }-->
+<!--        -->
+<!--//         async updateUser(userId, userData) {-->
+<!--          -->
+<!--//                 const result = await this.viewEntity.updateUser(userId, userData);-->
+<!--//                 return result;-->
 
-//         }
-//     }
-    
-    
-//     class ViewUI {
-//         constructor() {
-//             this.controller = new ViewController();
-//             this.statusDiv = document.getElementById('status');
-//             this.tableContainer = document.getElementById('tableContainer');
-//         }
-        
-//         showLoading() {
-//             this.statusDiv.style.display = 'block';
-//             this.statusDiv.className = 'status';
-            
-//         }
-        
-//         showError(message) {
-//             this.statusDiv.style.display = 'block';
-//             this.statusDiv.className = 'status error';
-//             this.statusDiv.innerHTML = `Error: ${message}`;
-//         }
-        
-//         showSuccess(count) {
-//             this.statusDiv.style.display = 'block';
-//             this.statusDiv.className = 'status success';
-//             this.statusDiv.innerHTML = `Found ${count} records`;
-//         }
-        
-//         showUpdateSuccess(userName) {
-//             // Ensure status div is visible
-//             this.statusDiv.style.display = 'block';
-//             this.statusDiv.className = 'status success';
-//             this.statusDiv.innerHTML = `<strong>Success!</strong> User "${userName}" was updated successfully.`;
-            
-//             // Scroll to the status message to ensure it's visible
-//             this.statusDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-//             // Auto-hide the message after 5 seconds
-//             setTimeout(() => {
-//                 this.statusDiv.style.display = 'none';
-//             }, 5000);
-//         }
-        
-//         showUpdateError(message) {
-//             this.statusDiv.style.display = 'block';
-//             this.statusDiv.className = 'status error';
-//             this.statusDiv.innerHTML = `Error updating user: ${message}`;
-//         }
-        
-//         renderTable(data) {
-//             if (!data || data.length === 0) {
-//                 this.tableContainer.innerHTML = '<p>No records found in the table.</p>';
-//                 return;
-//             }
-            
-//             // Create table
-//             let tableHTML = '<table id="usersTable"><thead><tr>';
-            
-//             // Get column names from the first record
-//             const columns = Object.keys(data[0]);
-            
-//             // Add table headers
-//             columns.forEach(column => {
-//                 tableHTML += `<th>${column}</th>`;
-//             });
-            
-//             // Add actions column
-//             tableHTML += '<th>Actions</th>';
-            
-//             tableHTML += '</tr></thead><tbody>';
-            
-//             // Add table rows
-//             data.forEach(row => {
-//                 const rowId = row.id || row.user_id;
-//                 tableHTML += `<tr id="user-row-${rowId}">`;
-//                 columns.forEach(column => {
-//                     // Special handling for password column - blur it
-//                     if (column === 'password') {
-//                         tableHTML += `<td><span class="blur-text">${row[column] || ''}</span></td>`;
-//                     }
-//                     // Special handling for the isSuspended column to show true/false explicitly
-//                     else if (column === 'isSuspended') {
-//                         tableHTML += `<td>${row[column] ? 'true' : 'false'}</td>`;
-//                     }
-//                     else {
-//                         tableHTML += `<td>${row[column] || ''}</td>`;
-//                     }
-//                 });
-                
-//                 // Add edit button
-//                 tableHTML += `<td><button class="edit-btn" onclick="openEditModal(${JSON.stringify(row).replace(/"/g, '&quot;')})">Edit</button></td>`;
-                
-//                 tableHTML += '</tr>';
-//             });
-            
-//             tableHTML += '</tbody></table>';
-//             this.tableContainer.innerHTML = tableHTML;
-//         }
-        
-//         async updateTableRow(userId, userData) {
-//             // Fetch the complete user data from the API
-//             const result = await this.controller.getUserById(userId);
-            
-//             if (!result.success) {
-//                 console.error(`Error fetching updated user data: ${result.message}`);
-//                 // If we can't get the latest data, refresh the entire table
-//                 this.displayAllUsers(true);
-//                 return;
-//             }
-            
-//             const updatedUser = result.data;
-//             const tableRow = document.getElementById(`user-row-${userId}`);
-            
-//             if (!tableRow) {
-//                 console.error(`Row with ID user-row-${userId} not found`);
-//                 // Fallback to full table refresh
-//                 this.displayAllUsers(true);
-//                 return;
-//             }
-            
-//             // Get all column names from the first row
-//             const table = document.getElementById('usersTable');
-//             if (!table) return;
-            
-//             const headerRow = table.querySelector('thead tr');
-//             if (!headerRow) return;
-            
-//             const columns = Array.from(headerRow.cells)
-//                 .map(cell => cell.textContent)
-//                 .filter(col => col !== 'Actions');
-            
-//             // Update each cell in the row
-//             let cellIndex = 0;
-//             columns.forEach(column => {
-//                 if (updatedUser.hasOwnProperty(column)) {
-//                     const cell = tableRow.cells[cellIndex];
-                    
-//                     // Special handling for password column - blur it
-//                     if (column === 'password') {
-//                         cell.innerHTML = `<span class="blur-text">${updatedUser[column] || ''}</span>`;
-//                     }
-//                     // Special handling for the isSuspended column to show true/false explicitly
-//                     else if (column === 'isSuspended') {
-//                         cell.textContent = updatedUser[column] ? 'true' : 'false';
-//                     }
-//                     else {
-//                         cell.textContent = updatedUser[column] || '';
-//                     }
-//                 }
-//                 cellIndex++;
-//             });
-            
-//             // Apply highlighting animation to the updated row
-//             tableRow.classList.remove('highlight');
-//             // Force a reflow
-//             void tableRow.offsetWidth;
-//             tableRow.classList.add('highlight');
-//         }
-        
-//         async displayAllUsers(skipSuccessMessage = false) {
-//             this.showLoading();
-            
-//             try {
-//                 const result = await this.controller.getAllUsers();
-                
-//                 if (result.success) {
-//                     // Render the table directly with the API data
-//                     this.renderTable(result.data);
-                    
-//                     // Only show the "Found X records" message if not skipping it
-//                     if (!skipSuccessMessage) {
-//                         this.showSuccess(result.data.length);
-//                     }
-//                 } else {
-//                     this.showError(result.message);
-//                 }
-//             } catch (error) {
-//                 this.showError(`Failed to connect to server: ${error.message}`);
-//             }
-//         }
-//     }
-    
+<!--//         }-->
+<!--//     }-->
+<!--    -->
+<!--    -->
+<!--//     class ViewUI {-->
+<!--//         constructor() {-->
+<!--//             this.controller = new ViewController();-->
+<!--//             this.statusDiv = document.getElementById('status');-->
+<!--//             this.tableContainer = document.getElementById('tableContainer');-->
+<!--//         }-->
+<!--        -->
+<!--//         showLoading() {-->
+<!--//             this.statusDiv.style.display = 'block';-->
+<!--//             this.statusDiv.className = 'status';-->
+<!--            -->
+<!--//         }-->
+<!--        -->
+<!--//         showError(message) {-->
+<!--//             this.statusDiv.style.display = 'block';-->
+<!--//             this.statusDiv.className = 'status error';-->
+<!--//             this.statusDiv.innerHTML = `Error: ${message}`;-->
+<!--//         }-->
+<!--        -->
+<!--//         showSuccess(count) {-->
+<!--//             this.statusDiv.style.display = 'block';-->
+<!--//             this.statusDiv.className = 'status success';-->
+<!--//             this.statusDiv.innerHTML = `Found ${count} records`;-->
+<!--//         }-->
+<!--        -->
+<!--//         showUpdateSuccess(userName) {-->
+<!--//             // Ensure status div is visible-->
+<!--//             this.statusDiv.style.display = 'block';-->
+<!--//             this.statusDiv.className = 'status success';-->
+<!--//             this.statusDiv.innerHTML = `<strong>Success!</strong> User "${userName}" was updated successfully.`;-->
+<!--            -->
+<!--//             // Scroll to the status message to ensure it's visible-->
+<!--//             this.statusDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });-->
+<!--            -->
+<!--//             // Auto-hide the message after 5 seconds-->
+<!--//             setTimeout(() => {-->
+<!--//                 this.statusDiv.style.display = 'none';-->
+<!--//             }, 5000);-->
+<!--//         }-->
+<!--        -->
+<!--//         showUpdateError(message) {-->
+<!--//             this.statusDiv.style.display = 'block';-->
+<!--//             this.statusDiv.className = 'status error';-->
+<!--//             this.statusDiv.innerHTML = `Error updating user: ${message}`;-->
+<!--//         }-->
+<!--        -->
+<!--//         renderTable(data) {-->
+<!--//             if (!data || data.length === 0) {-->
+<!--//                 this.tableContainer.innerHTML = '<p>No records found in the table.</p>';-->
+<!--//                 return;-->
+<!--//             }-->
+<!--            -->
+<!--//             // Create table-->
+<!--//             let tableHTML = '<table id="usersTable"><thead><tr>';-->
+<!--            -->
+<!--//             // Get column names from the first record-->
+<!--//             const columns = Object.keys(data[0]);-->
+<!--            -->
+<!--//             // Add table headers-->
+<!--//             columns.forEach(column => {-->
+<!--//                 tableHTML += `<th>${column}</th>`;-->
+<!--//             });-->
+<!--            -->
+<!--//             // Add actions column-->
+<!--//             tableHTML += '<th>Actions</th>';-->
+<!--            -->
+<!--//             tableHTML += '</tr></thead><tbody>';-->
+<!--            -->
+<!--//             // Add table rows-->
+<!--//             data.forEach(row => {-->
+<!--//                 const rowId = row.id || row.user_id;-->
+<!--//                 tableHTML += `<tr id="user-row-${rowId}">`;-->
+<!--//                 columns.forEach(column => {-->
+<!--//                     // Special handling for password column - blur it-->
+<!--//                     if (column === 'password') {-->
+<!--//                         tableHTML += `<td><span class="blur-text">${row[column] || ''}</span></td>`;-->
+<!--//                     }-->
+<!--//                     // Special handling for the isSuspended column to show true/false explicitly-->
+<!--//                     else if (column === 'isSuspended') {-->
+<!--//                         tableHTML += `<td>${row[column] ? 'true' : 'false'}</td>`;-->
+<!--//                     }-->
+<!--//                     else {-->
+<!--//                         tableHTML += `<td>${row[column] || ''}</td>`;-->
+<!--//                     }-->
+<!--//                 });-->
+<!--                -->
+<!--//                 // Add edit button-->
+<!--//                 tableHTML += `<td><button class="edit-btn" onclick="openEditModal(${JSON.stringify(row).replace(/"/g, '&quot;')})">Edit</button></td>`;-->
+<!--                -->
+<!--//                 tableHTML += '</tr>';-->
+<!--//             });-->
+<!--            -->
+<!--//             tableHTML += '</tbody></table>';-->
+<!--//             this.tableContainer.innerHTML = tableHTML;-->
+<!--//         }-->
+<!--        -->
+<!--//         async updateTableRow(userId, userData) {-->
+<!--//             // Fetch the complete user data from the API-->
+<!--//             const result = await this.controller.getUserById(userId);-->
+<!--            -->
+<!--//             if (!result.success) {-->
+<!--//                 console.error(`Error fetching updated user data: ${result.message}`);-->
+<!--//                 // If we can't get the latest data, refresh the entire table-->
+<!--//                 this.displayAllUsers(true);-->
+<!--//                 return;-->
+<!--//             }-->
+<!--            -->
+<!--//             const updatedUser = result.data;-->
+<!--//             const tableRow = document.getElementById(`user-row-${userId}`);-->
+<!--            -->
+<!--//             if (!tableRow) {-->
+<!--//                 console.error(`Row with ID user-row-${userId} not found`);-->
+<!--//                 // Fallback to full table refresh-->
+<!--//                 this.displayAllUsers(true);-->
+<!--//                 return;-->
+<!--//             }-->
+<!--            -->
+<!--//             // Get all column names from the first row-->
+<!--//             const table = document.getElementById('usersTable');-->
+<!--//             if (!table) return;-->
+<!--            -->
+<!--//             const headerRow = table.querySelector('thead tr');-->
+<!--//             if (!headerRow) return;-->
+<!--            -->
+<!--//             const columns = Array.from(headerRow.cells)-->
+<!--//                 .map(cell => cell.textContent)-->
+<!--//                 .filter(col => col !== 'Actions');-->
+<!--            -->
+<!--//             // Update each cell in the row-->
+<!--//             let cellIndex = 0;-->
+<!--//             columns.forEach(column => {-->
+<!--//                 if (updatedUser.hasOwnProperty(column)) {-->
+<!--//                     const cell = tableRow.cells[cellIndex];-->
+<!--                    -->
+<!--//                     // Special handling for password column - blur it-->
+<!--//                     if (column === 'password') {-->
+<!--//                         cell.innerHTML = `<span class="blur-text">${updatedUser[column] || ''}</span>`;-->
+<!--//                     }-->
+<!--//                     // Special handling for the isSuspended column to show true/false explicitly-->
+<!--//                     else if (column === 'isSuspended') {-->
+<!--//                         cell.textContent = updatedUser[column] ? 'true' : 'false';-->
+<!--//                     }-->
+<!--//                     else {-->
+<!--//                         cell.textContent = updatedUser[column] || '';-->
+<!--//                     }-->
+<!--//                 }-->
+<!--//                 cellIndex++;-->
+<!--//             });-->
+<!--            -->
+<!--//             // Apply highlighting animation to the updated row-->
+<!--//             tableRow.classList.remove('highlight');-->
+<!--//             // Force a reflow-->
+<!--//             void tableRow.offsetWidth;-->
+<!--//             tableRow.classList.add('highlight');-->
+<!--//         }-->
+<!--        -->
+<!--//         async displayAllUsers(skipSuccessMessage = false) {-->
+<!--//             this.showLoading();-->
+<!--            -->
+<!--//             try {-->
+<!--//                 const result = await this.controller.getAllUsers();-->
+<!--                -->
+<!--//                 if (result.success) {-->
+<!--//                     // Render the table directly with the API data-->
+<!--//                     this.renderTable(result.data);-->
+<!--                    -->
+<!--//                     // Only show the "Found X records" message if not skipping it-->
+<!--//                     if (!skipSuccessMessage) {-->
+<!--//                         this.showSuccess(result.data.length);-->
+<!--//                     }-->
+<!--//                 } else {-->
+<!--//                     this.showError(result.message);-->
+<!--//                 }-->
+<!--//             } catch (error) {-->
+<!--//                 this.showError(`Failed to connect to server: ${error.message}`);-->
+<!--//             }-->
+<!--//         }-->
+<!--//     }-->
+<!--    -->
 
-// class SearchController {
-//     constructor() {
-//         this.viewEntity = new ViewEntity();
-//     }
-    
-//     async searchUsers() {
-//         // Simply returns all users without any filtering or validation
-//         return await this.viewEntity.fetchAllUsers();
-//     }
-// }
+<!--// class SearchController {-->
+<!--//     constructor() {-->
+<!--//         this.viewEntity = new ViewEntity();-->
+<!--//     }-->
+<!--    -->
+<!--//     async searchUsers() {-->
+<!--//         // Simply returns all users without any filtering or validation-->
+<!--//         return await this.viewEntity.fetchAllUsers();-->
+<!--//     }-->
+<!--// }-->
 
-// // Search UI class - extends ViewUI to reuse the rendering logic
-// class SearchUI extends ViewUI {
-//     constructor() {
-//         super();
-//         this.searchController = new SearchController();
-//         this.searchInput = document.getElementById('searchInput');
-//     }
-    
-//     showSearchLoading() {
-//         this.statusDiv.style.display = 'block';
-//         this.statusDiv.className = 'status';
-//         this.statusDiv.innerHTML = 'Searching...';
-//     }
-    
-//     showSearchSuccess(count, searchTerm) {
-//         this.statusDiv.style.display = 'block';
-//         this.statusDiv.className = 'status success';
-//         this.statusDiv.innerHTML = `Found ${count} matching users for "${searchTerm}"`;
-//     }
-    
-//     async performSearch() {
-//         try {
-//             let searchTerm = this.searchInput.value;
-//             this.showSearchLoading();
-            
-//             try {
-//                 // Get all users from the controller
-//                 const result = await this.searchController.searchUsers();
-                
-//                 // Moved success check from controller to UI
-//                 if (!result.success) {
-//                     this.showError(result.message || 'Unknown error occurred');
-//                     return;
-//                 }
-                
-//                 // Ensure data is an array to prevent undefined errors
-//                 const userData = Array.isArray(result.data) ? result.data : [];
-                
-//                 // Filter users here if search term is not empty
-//                 let filteredData = userData;
-                
-//                 if (searchTerm && searchTerm.trim() !== '') {
-//                     searchTerm = searchTerm.trim();
-//                     // Moved filtering logic from controller to UI
-//                     filteredData = userData.filter(user => {
-//                         return Object.values(user).some(value => 
-//                             value !== null && 
-//                             value !== undefined && 
-//                             String(value).toLowerCase().includes(searchTerm.toLowerCase())
-//                         );
-//                     });
-//                 }
-                
-//                 this.showSearchSuccess(filteredData.length, searchTerm.trim() || "all users");
-//                 this.renderTable(filteredData);
-//             } catch (error) {
-//                 this.showError(`Error processing search: ${error.message}`);
-//             }
-//         } catch (error) {
-//             // Handle UI-specific errors
-//             console.error('UI Error in performSearch:', error);
-//             this.showError(`UI error: ${error.message}`);
-//         }
-//     }
-// }
-    
+<!--// // Search UI class - extends ViewUI to reuse the rendering logic-->
+<!--// class SearchUI extends ViewUI {-->
+<!--//     constructor() {-->
+<!--//         super();-->
+<!--//         this.searchController = new SearchController();-->
+<!--//         this.searchInput = document.getElementById('searchInput');-->
+<!--//     }-->
+<!--    -->
+<!--//     showSearchLoading() {-->
+<!--//         this.statusDiv.style.display = 'block';-->
+<!--//         this.statusDiv.className = 'status';-->
+<!--//         this.statusDiv.innerHTML = 'Searching...';-->
+<!--//     }-->
+<!--    -->
+<!--//     showSearchSuccess(count, searchTerm) {-->
+<!--//         this.statusDiv.style.display = 'block';-->
+<!--//         this.statusDiv.className = 'status success';-->
+<!--//         this.statusDiv.innerHTML = `Found ${count} matching users for "${searchTerm}"`;-->
+<!--//     }-->
+<!--    -->
+<!--//     async performSearch() {-->
+<!--//         try {-->
+<!--//             let searchTerm = this.searchInput.value;-->
+<!--//             this.showSearchLoading();-->
+<!--            -->
+<!--//             try {-->
+<!--//                 // Get all users from the controller-->
+<!--//                 const result = await this.searchController.searchUsers();-->
+<!--                -->
+<!--//                 // Moved success check from controller to UI-->
+<!--//                 if (!result.success) {-->
+<!--//                     this.showError(result.message || 'Unknown error occurred');-->
+<!--//                     return;-->
+<!--//                 }-->
+<!--                -->
+<!--//                 // Ensure data is an array to prevent undefined errors-->
+<!--//                 const userData = Array.isArray(result.data) ? result.data : [];-->
+<!--                -->
+<!--//                 // Filter users here if search term is not empty-->
+<!--//                 let filteredData = userData;-->
+<!--                -->
+<!--//                 if (searchTerm && searchTerm.trim() !== '') {-->
+<!--//                     searchTerm = searchTerm.trim();-->
+<!--//                     // Moved filtering logic from controller to UI-->
+<!--//                     filteredData = userData.filter(user => {-->
+<!--//                         return Object.values(user).some(value => -->
+<!--//                             value !== null && -->
+<!--//                             value !== undefined && -->
+<!--//                             String(value).toLowerCase().includes(searchTerm.toLowerCase())-->
+<!--//                         );-->
+<!--//                     });-->
+<!--//                 }-->
+<!--                -->
+<!--//                 this.showSearchSuccess(filteredData.length, searchTerm.trim() || "all users");-->
+<!--//                 this.renderTable(filteredData);-->
+<!--//             } catch (error) {-->
+<!--//                 this.showError(`Error processing search: ${error.message}`);-->
+<!--//             }-->
+<!--//         } catch (error) {-->
+<!--//             // Handle UI-specific errors-->
+<!--//             console.error('UI Error in performSearch:', error);-->
+<!--//             this.showError(`UI error: ${error.message}`);-->
+<!--//         }-->
+<!--//     }-->
+<!--// }-->
+<!--    -->
 
 
-// // Controller class 
-// class EditController {
-//     constructor() {
-//         this.editEntity = new ViewEntity();
-//     }
+<!--// // Controller class -->
+<!--// class EditController {-->
+<!--//     constructor() {-->
+<!--//         this.editEntity = new ViewEntity();-->
+<!--//     }-->
 
-//     async getUser(userId) {
-//         // Simply pass through to entity layer without validation or error handling
-//         return await this.editEntity.fetchUserById(userId);
-//     }
+<!--//     async getUser(userId) {-->
+<!--//         // Simply pass through to entity layer without validation or error handling-->
+<!--//         return await this.editEntity.fetchUserById(userId);-->
+<!--//     }-->
 
-//     async updateUser(userId, userData) {
-//         // Simply pass through to entity layer without validation or error handling
-//         return await this.editEntity.updateUser(userId, userData);
-//     }
-// }
+<!--//     async updateUser(userId, userData) {-->
+<!--//         // Simply pass through to entity layer without validation or error handling-->
+<!--//         return await this.editEntity.updateUser(userId, userData);-->
+<!--//     }-->
+<!--// }-->
 
-// // Boundary class - Handles UI, presentation, validation, and error handling
-// class EditBoundary {
-//     constructor() {
-//         this.controller = new EditController();
-//         this.statusDiv = document.getElementById('status');
-//         this.editModal = document.getElementById('editModal');
-//         this.editUserForm = document.getElementById('editUserForm');
-//         this.userIdField = document.getElementById('userId');
-//         this.userNameField = document.getElementById('userName');
-//         this.formFields = document.getElementById('formFields');
-//         this.viewUI = new ViewUI(); // Reference to ViewUI for table updates
-        
-//         // Remove any existing event listeners (to avoid duplicates)
-//         this.editUserForm.removeEventListener('submit', this.handleFormSubmit);
-//         // Add event listener for form submission
-//         this.editUserForm.addEventListener('submit', this.handleFormSubmit.bind(this));
-//     }
-    
-//     validateUserData(userData) {
-//         // Basic validation example - extend as needed
-//         if (userData.email && !this.isValidEmail(userData.email)) {
-//             return {
-//                 success: false,
-//                 message: "Please enter a valid email address"
-//             };
-//         }
-        
-        
-        
-//         return {
-//             success: true
-//         };
-//     }
-    
-//     isValidEmail(email) {
-//         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-//         return emailRegex.test(email);
-//     }
+<!--// // Boundary class - Handles UI, presentation, validation, and error handling-->
+<!--// class EditBoundary {-->
+<!--//     constructor() {-->
+<!--//         this.controller = new EditController();-->
+<!--//         this.statusDiv = document.getElementById('status');-->
+<!--//         this.editModal = document.getElementById('editModal');-->
+<!--//         this.editUserForm = document.getElementById('editUserForm');-->
+<!--//         this.userIdField = document.getElementById('userId');-->
+<!--//         this.userNameField = document.getElementById('userName');-->
+<!--//         this.formFields = document.getElementById('formFields');-->
+<!--//         this.viewUI = new ViewUI(); // Reference to ViewUI for table updates-->
+<!--        -->
+<!--//         // Remove any existing event listeners (to avoid duplicates)-->
+<!--//         this.editUserForm.removeEventListener('submit', this.handleFormSubmit);-->
+<!--//         // Add event listener for form submission-->
+<!--//         this.editUserForm.addEventListener('submit', this.handleFormSubmit.bind(this));-->
+<!--//     }-->
+<!--    -->
+<!--//     validateUserData(userData) {-->
+<!--//         // Basic validation example - extend as needed-->
+<!--//         if (userData.email && !this.isValidEmail(userData.email)) {-->
+<!--//             return {-->
+<!--//                 success: false,-->
+<!--//                 message: "Please enter a valid email address"-->
+<!--//             };-->
+<!--//         }-->
+<!--        -->
+<!--        -->
+<!--        -->
+<!--//         return {-->
+<!--//             success: true-->
+<!--//         };-->
+<!--//     }-->
+<!--    -->
+<!--//     isValidEmail(email) {-->
+<!--//         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;-->
+<!--//         return emailRegex.test(email);-->
+<!--//     }-->
 
-//     showSuccess(message) {
-//         this.statusDiv.style.display = 'block';
-//         this.statusDiv.className = 'status success';
-//         this.statusDiv.innerHTML = message;
-        
-//         // Scroll to the status message to ensure it's visible
-//         this.statusDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-//         // Auto-hide the message after 5 seconds
-//         setTimeout(() => {
-//             this.statusDiv.style.display = 'none';
-//         }, 5000);
-//     }
+<!--//     showSuccess(message) {-->
+<!--//         this.statusDiv.style.display = 'block';-->
+<!--//         this.statusDiv.className = 'status success';-->
+<!--//         this.statusDiv.innerHTML = message;-->
+<!--        -->
+<!--//         // Scroll to the status message to ensure it's visible-->
+<!--//         this.statusDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });-->
+<!--        -->
+<!--//         // Auto-hide the message after 5 seconds-->
+<!--//         setTimeout(() => {-->
+<!--//             this.statusDiv.style.display = 'none';-->
+<!--//         }, 5000);-->
+<!--//     }-->
 
-//     showError(message) {
-//         this.statusDiv.style.display = 'block';
-//         this.statusDiv.className = 'status error';
-//         this.statusDiv.innerHTML = `Error: ${message}`;
-//     }
-    
-//     async getUser(userId) {
-//         try {
-//             const result = await this.controller.getUser(userId);
-//             return result;
-//         } catch (error) {
-//             this.showError(`Error fetching user: ${error.message}`);
-//             return {
-//                 success: false,
-//                 message: `Error fetching user: ${error.message}`
-//             };
-//         }
-//     }
+<!--//     showError(message) {-->
+<!--//         this.statusDiv.style.display = 'block';-->
+<!--//         this.statusDiv.className = 'status error';-->
+<!--//         this.statusDiv.innerHTML = `Error: ${message}`;-->
+<!--//     }-->
+<!--    -->
+<!--//     async getUser(userId) {-->
+<!--//         try {-->
+<!--//             const result = await this.controller.getUser(userId);-->
+<!--//             return result;-->
+<!--//         } catch (error) {-->
+<!--//             this.showError(`Error fetching user: ${error.message}`);-->
+<!--//             return {-->
+<!--//                 success: false,-->
+<!--//                 message: `Error fetching user: ${error.message}`-->
+<!--//             };-->
+<!--//         }-->
+<!--//     }-->
 
-//     async openEditModal(userData) {
-//         try {
-//             // Store the user ID
-//             this.userIdField.value = userData.id || userData.user_id;
-            
-//             // Store the user name (or email or username, whatever is available)
-//             const userName = userData.name || userData.username || userData.email || `User #${this.userIdField.value}`;
-//             this.userNameField.value = userName;
-            
-//             // Clear previous form fields
-//             this.formFields.innerHTML = '';
-            
-//             // Create form fields for each property
-//             Object.keys(userData).forEach(key => {
-//                 // Skip primary key as it shouldn't be edited
-//                 if (key === 'id' || key === 'user_id') return;
-                
-//                 const formGroup = document.createElement('div');
-//                 formGroup.className = 'form-group';
-                
-//                 const label = document.createElement('label');
-//                 label.htmlFor = key;
-//                 label.textContent = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
-                
-//                 let input;
-                
-//                 // Special handling for boolean values
-//                 if (key === 'isSuspended' || (typeof userData[key] === 'boolean')) {
-//                     input = document.createElement('select');
-//                     input.innerHTML = `
-//                         <option value="true" ${userData[key] ? 'selected' : ''}>true</option>
-//                         <option value="false" ${!userData[key] ? 'selected' : ''}>false</option>
-//                     `;
-//                 } else {
-//                     input = document.createElement('input');
-//                     input.type = key === 'password' ? 'password' : 'text';
-//                     input.value = userData[key] || '';
-//                 }
-                
-//                 input.id = key;
-//                 input.name = key;
-                
-//                 formGroup.appendChild(label);
-//                 formGroup.appendChild(input);
-//                 this.formFields.appendChild(formGroup);
-//             });
-            
-//             // Show the modal
-//             this.editModal.style.display = 'block';
-//         } catch (error) {
-//             this.showError(`Error opening edit modal: ${error.message}`);
-//         }
-//     }
-    
-//     /**
-//      * Closes the edit modal
-//      */
-//     closeEditModal() {
-//         this.editModal.style.display = 'none';
-//     }
-    
-//     async handleFormSubmit(event) {
-//         event.preventDefault();
-        
-//         try {
-//             // Get the user ID and name
-//             const userId = this.userIdField.value;
-//             const userName = this.userNameField.value;
-            
-//             // Collect form data
-//             const formData = {};
-//             const formElements = this.editUserForm.elements;
-            
-//             for (let i = 0; i < formElements.length; i++) {
-//                 const element = formElements[i];
-                
-//                 // Skip buttons and hidden fields
-//                 if (element.type === 'button' || element.type === 'submit' || 
-//                     element.id === 'userId' || element.id === 'userName') {
-//                     continue;
-//                 }
-                
-//                 formData[element.name] = element.value;
-//             }
-            
-//             // Process boolean values (convert string representation to actual boolean)
-//             Object.keys(formData).forEach(key => {
-//                 if (formData[key] === 'true' || formData[key] === 'false') {
-//                     formData[key] = formData[key] === 'true';
-//                 }
-//             });
-            
-//             // Validate user data before updating
-//             const validation = this.validateUserData(formData);
-//             if (!validation.success) {
-//                 this.showError(validation.message);
-//                 return;
-//             }
-            
-//             // Call the controller to update the user
-//             const result = await this.controller.updateUser(userId, formData);
-            
-//             // Close the modal first
-//             this.closeEditModal();
-            
-//             if (result.success) {
-//                 // Display the success message
-//                 this.showSuccess(`<strong>Update Successful</strong> - User "${userName}" was updated.`);
-                
-//                 // Update the table row with the new data
-//                 this.viewUI.updateTableRow(userId, formData);
-//             } else {
-//                 this.showError(result.message || "Unknown error occurred");
-//             }
-//         } catch (error) {
-//             this.closeEditModal();
-//             this.showError(`Error updating user: ${error.message}`);
-//         }
-//     }
-// }
+<!--//     async openEditModal(userData) {-->
+<!--//         try {-->
+<!--//             // Store the user ID-->
+<!--//             this.userIdField.value = userData.id || userData.user_id;-->
+<!--            -->
+<!--//             // Store the user name (or email or username, whatever is available)-->
+<!--//             const userName = userData.name || userData.username || userData.email || `User #${this.userIdField.value}`;-->
+<!--//             this.userNameField.value = userName;-->
+<!--            -->
+<!--//             // Clear previous form fields-->
+<!--//             this.formFields.innerHTML = '';-->
+<!--            -->
+<!--//             // Create form fields for each property-->
+<!--//             Object.keys(userData).forEach(key => {-->
+<!--//                 // Skip primary key as it shouldn't be edited-->
+<!--//                 if (key === 'id' || key === 'user_id') return;-->
+<!--                -->
+<!--//                 const formGroup = document.createElement('div');-->
+<!--//                 formGroup.className = 'form-group';-->
+<!--                -->
+<!--//                 const label = document.createElement('label');-->
+<!--//                 label.htmlFor = key;-->
+<!--//                 label.textContent = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');-->
+<!--                -->
+<!--//                 let input;-->
+<!--                -->
+<!--//                 // Special handling for boolean values-->
+<!--//                 if (key === 'isSuspended' || (typeof userData[key] === 'boolean')) {-->
+<!--//                     input = document.createElement('select');-->
+<!--//                     input.innerHTML = `-->
+<!--//                         <option value="true" ${userData[key] ? 'selected' : ''}>true</option>-->
+<!--//                         <option value="false" ${!userData[key] ? 'selected' : ''}>false</option>-->
+<!--//                     `;-->
+<!--//                 } else {-->
+<!--//                     input = document.createElement('input');-->
+<!--//                     input.type = key === 'password' ? 'password' : 'text';-->
+<!--//                     input.value = userData[key] || '';-->
+<!--//                 }-->
+<!--                -->
+<!--//                 input.id = key;-->
+<!--//                 input.name = key;-->
+<!--                -->
+<!--//                 formGroup.appendChild(label);-->
+<!--//                 formGroup.appendChild(input);-->
+<!--//                 this.formFields.appendChild(formGroup);-->
+<!--//             });-->
+<!--            -->
+<!--//             // Show the modal-->
+<!--//             this.editModal.style.display = 'block';-->
+<!--//         } catch (error) {-->
+<!--//             this.showError(`Error opening edit modal: ${error.message}`);-->
+<!--//         }-->
+<!--//     }-->
+<!--    -->
+<!--//     /**-->
+<!--//      * Closes the edit modal-->
+<!--//      */-->
+<!--//     closeEditModal() {-->
+<!--//         this.editModal.style.display = 'none';-->
+<!--//     }-->
+<!--    -->
+<!--//     async handleFormSubmit(event) {-->
+<!--//         event.preventDefault();-->
+<!--        -->
+<!--//         try {-->
+<!--//             // Get the user ID and name-->
+<!--//             const userId = this.userIdField.value;-->
+<!--//             const userName = this.userNameField.value;-->
+<!--            -->
+<!--//             // Collect form data-->
+<!--//             const formData = {};-->
+<!--//             const formElements = this.editUserForm.elements;-->
+<!--            -->
+<!--//             for (let i = 0; i < formElements.length; i++) {-->
+<!--//                 const element = formElements[i];-->
+<!--                -->
+<!--//                 // Skip buttons and hidden fields-->
+<!--//                 if (element.type === 'button' || element.type === 'submit' || -->
+<!--//                     element.id === 'userId' || element.id === 'userName') {-->
+<!--//                     continue;-->
+<!--//                 }-->
+<!--                -->
+<!--//                 formData[element.name] = element.value;-->
+<!--//             }-->
+<!--            -->
+<!--//             // Process boolean values (convert string representation to actual boolean)-->
+<!--//             Object.keys(formData).forEach(key => {-->
+<!--//                 if (formData[key] === 'true' || formData[key] === 'false') {-->
+<!--//                     formData[key] = formData[key] === 'true';-->
+<!--//                 }-->
+<!--//             });-->
+<!--            -->
+<!--//             // Validate user data before updating-->
+<!--//             const validation = this.validateUserData(formData);-->
+<!--//             if (!validation.success) {-->
+<!--//                 this.showError(validation.message);-->
+<!--//                 return;-->
+<!--//             }-->
+<!--            -->
+<!--//             // Call the controller to update the user-->
+<!--//             const result = await this.controller.updateUser(userId, formData);-->
+<!--            -->
+<!--//             // Close the modal first-->
+<!--//             this.closeEditModal();-->
+<!--            -->
+<!--//             if (result.success) {-->
+<!--//                 // Display the success message-->
+<!--//                 this.showSuccess(`<strong>Update Successful</strong> - User "${userName}" was updated.`);-->
+<!--                -->
+<!--//                 // Update the table row with the new data-->
+<!--//                 this.viewUI.updateTableRow(userId, formData);-->
+<!--//             } else {-->
+<!--//                 this.showError(result.message || "Unknown error occurred");-->
+<!--//             }-->
+<!--//         } catch (error) {-->
+<!--//             this.closeEditModal();-->
+<!--//             this.showError(`Error updating user: ${error.message}`);-->
+<!--//         }-->
+<!--//     }-->
+<!--// }-->
 
-//     // Initialize the UI instances
-//     let viewUI;
-//     let searchUI;
-    
-//     // Global variable for the edit boundary
-//     let editBoundary;
-    
-//     // View users initialization function
-//     function initViewUsers() {
-//         // Hide the View All button
-//         document.getElementById('viewAllButton').style.display = 'none';
-//         // Show the search container
-//         document.getElementById('searchContainer').style.display = 'block';
-        
-//         // Initialize the view UI if not already done
-//         if (!viewUI) {
-//             viewUI = new ViewUI();
-//         }
-        
-//         // Display all users
-//         viewUI.displayAllUsers();
-//     }
-    
-//     // Search function
-//     function performSearch() {
-//         // Initialize the search UI if not already done
-//         if (!searchUI) {
-//             searchUI = new SearchUI();
-//         }
-        
-//         // Perform search
-//         searchUI.performSearch();
-//     }
-    
-//     // Handle keyboard events for search input
-//     function handleSearchKeyPress(event) {
-//         // Check if Enter key was pressed
-//         if (event.key === 'Enter') {
-//             event.preventDefault();
-//             performSearch();
-//         }
-//     }
-    
-//     // Edit modal functions - updated to use the new EditBoundary class
-//     function openEditModal(userData) {
-//         if (!editBoundary) {
-//             editBoundary = new EditBoundary();
-//         }
-//         editBoundary.openEditModal(userData);
-//     }
-    
-//     function closeEditModal() {
-//         if (editBoundary) {
-//             editBoundary.closeEditModal();
-//         } else {
-//             document.getElementById('editModal').style.display = 'none';
-//         }
-//     }
-    
-//     // Fix modal display issue when initialized and set up event listeners
-//     document.addEventListener('DOMContentLoaded', function() {
-//         // Hide the modal on page load
-//         const modal = document.getElementById('editModal');
-//         modal.style.display = 'none';
-        
-//         // Initialize the edit boundary
-//         editBoundary = new EditBoundary();
-        
-//         // Initialize the view UI
-//         viewUI = new ViewUI();
-        
-//         // Initialize the search UI
-//         searchUI = new SearchUI();
-//     });
-</script>
+<!--//     // Initialize the UI instances-->
+<!--//     let viewUI;-->
+<!--//     let searchUI;-->
+<!--    -->
+<!--//     // Global variable for the edit boundary-->
+<!--//     let editBoundary;-->
+<!--    -->
+<!--//     // View users initialization function-->
+<!--//     function initViewUsers() {-->
+<!--//         // Hide the View All button-->
+<!--//         document.getElementById('viewAllButton').style.display = 'none';-->
+<!--//         // Show the search container-->
+<!--//         document.getElementById('searchContainer').style.display = 'block';-->
+<!--        -->
+<!--//         // Initialize the view UI if not already done-->
+<!--//         if (!viewUI) {-->
+<!--//             viewUI = new ViewUI();-->
+<!--//         }-->
+<!--        -->
+<!--//         // Display all users-->
+<!--//         viewUI.displayAllUsers();-->
+<!--//     }-->
+<!--    -->
+<!--//     // Search function-->
+<!--//     function performSearch() {-->
+<!--//         // Initialize the search UI if not already done-->
+<!--//         if (!searchUI) {-->
+<!--//             searchUI = new SearchUI();-->
+<!--//         }-->
+<!--        -->
+<!--//         // Perform search-->
+<!--//         searchUI.performSearch();-->
+<!--//     }-->
+<!--    -->
+<!--//     // Handle keyboard events for search input-->
+<!--//     function handleSearchKeyPress(event) {-->
+<!--//         // Check if Enter key was pressed-->
+<!--//         if (event.key === 'Enter') {-->
+<!--//             event.preventDefault();-->
+<!--//             performSearch();-->
+<!--//         }-->
+<!--//     }-->
+<!--    -->
+<!--//     // Edit modal functions - updated to use the new EditBoundary class-->
+<!--//     function openEditModal(userData) {-->
+<!--//         if (!editBoundary) {-->
+<!--//             editBoundary = new EditBoundary();-->
+<!--//         }-->
+<!--//         editBoundary.openEditModal(userData);-->
+<!--//     }-->
+<!--    -->
+<!--//     function closeEditModal() {-->
+<!--//         if (editBoundary) {-->
+<!--//             editBoundary.closeEditModal();-->
+<!--//         } else {-->
+<!--//             document.getElementById('editModal').style.display = 'none';-->
+<!--//         }-->
+<!--//     }-->
+<!--    -->
+<!--//     // Fix modal display issue when initialized and set up event listeners-->
+<!--//     document.addEventListener('DOMContentLoaded', function() {-->
+<!--//         // Hide the modal on page load-->
+<!--//         const modal = document.getElementById('editModal');-->
+<!--//         modal.style.display = 'none';-->
+<!--        -->
+<!--//         // Initialize the edit boundary-->
+<!--//         editBoundary = new EditBoundary();-->
+<!--        -->
+<!--//         // Initialize the view UI-->
+<!--//         viewUI = new ViewUI();-->
+<!--        -->
+<!--//         // Initialize the search UI-->
+<!--//         searchUI = new SearchUI();-->
+<!--//     });-->
+<!--</script>-->
 
 </body>
 </html>

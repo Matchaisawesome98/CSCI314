@@ -336,7 +336,13 @@
             }
         }
     </style>
+<script>
+  // Flag to enable only shortlist search on this page
+  window.isShortlistPage = true;
 
+  // Disable the general search functionality from homeCleanerBCE.js
+  window.preventGeneralSearch = true;
+</script>
 </head>
 <body>
     <header>
@@ -344,8 +350,8 @@
             <div class="header-content">
                 <a href='../homePage.html' class="logo">CleanConnect</a>
                 <div class="search-container">
-                    <input type="text" class="search-input" id="search-input" placeholder="Search in shortlist...">
-                    <button class="search-btn" id="search-btn">🔍</button>
+                    <input type="text" class="search-input" id="shortlist-search-input" placeholder="Search in shortlist...">
+                    <button class="search-btn" id="shortlist-search-btn">🔍</button>
                 </div>
                 <div style="display: flex; align-items: center;">
                     <button class="btn btn-secondary" onclick="window.location.href='../homePage.html'">Back to Home</button>

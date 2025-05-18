@@ -2114,6 +2114,8 @@ app.get('/api/shortlist/search', async (req, res) => {
     try {
         const { user_id, query } = req.query;
 
+        console.log('Search request received:', { user_id, query });
+
         // Validate required user_id
         if (!user_id) {
             return res.status(400).json({
@@ -2124,7 +2126,83 @@ app.get('/api/shortlist/search', async (req, res) => {
 
         const connection = await mysql2Promise.createConnection(dbConfig);
 
-        // Build the SQL query
+        // Step 1: First get ALL shortlisted items for this user
+        console.log('Step 1: Getting all shortlisted items for user');
+        const [allItems] = await connection.execute(`
+            SELECT l.*, CONCAT(u.first_name, ' ', u.last_name) as provider_name, 
+                   s.created_at as shortlisted_at
+            FROM shortlisted_listings s
+            JOIN listings l ON s.listing_id = l.listing_id
+            JOIN user_accounts u ON l.user_id = u.user_id
+            WHERE s.user_id = ?
+        `, [user_id]);
+
+        console.log(`Total shortlisted items for user ${user_id}:`, allItems.length);
+
+        // Step 2: Now search JUST the title field
+        if (query && query.trim()) {
+            console.log('Step 2: Searching ONLY the title field');
+            const [titleResults] = await connection.execute(`
+                SELECT l.title, l.listing_id
+                FROM shortlisted_listings s
+                JOIN listings l ON s.listing_id = l.listing_id
+                JOIN user_accounts u ON l.user_id = u.user_id
+                WHERE s.user_id = ?
+                AND LOWER(l.title) LIKE LOWER(?)
+            `, [user_id, `%${query.trim()}%`]);
+
+            console.log('Title search results:', titleResults);
+
+            // Check every shortlisted item's title field for matches
+            if (allItems.length > 0) {
+                console.log('Examining titles directly:');
+                allItems.forEach(item => {
+                    const titleLower = (item.title || '').toLowerCase();
+                    const queryLower = query.toLowerCase();
+                    console.log(`Item "${item.title}" - Contains "${query}"? ${titleLower.includes(queryLower)}`);
+                    console.log(`  Title: "${item.title}" (${typeof item.title})`);
+                    console.log(`  Title lowercase: "${titleLower}"`);
+                    console.log(`  Query lowercase: "${queryLower}"`);
+                    console.log(`  Character codes for title:`);
+                    for (let i = 0; i < item.title.length; i++) {
+                        console.log(`    ${item.title[i]}: ${item.title.charCodeAt(i)}`);
+                    }
+                    console.log(`  Character codes for query:`);
+                    for (let i = 0; i < query.length; i++) {
+                        console.log(`    ${query[i]}: ${query.charCodeAt(i)}`);
+                    }
+                });
+            }
+        }
+
+        // Step 3: Try all fields one by one
+        if (query && query.trim()) {
+            console.log('Step 3: Testing each field individually');
+
+            const fields = [
+                'l.title',
+                'l.description',
+                'l.category_name',
+                'CAST(l.price AS CHAR)',
+                'CONCAT(u.first_name, " ", u.last_name)'
+            ];
+
+            for (const field of fields) {
+                const sql = `
+                    SELECT l.listing_id, ${field} as matched_field
+                    FROM shortlisted_listings s
+                    JOIN listings l ON s.listing_id = l.listing_id
+                    JOIN user_accounts u ON l.user_id = u.user_id
+                    WHERE s.user_id = ?
+                    AND LOWER(${field}) LIKE LOWER(?)
+                `;
+
+                const [results] = await connection.execute(sql, [user_id, `%${query.trim()}%`]);
+                console.log(`Results for field ${field}:`, results);
+            }
+        }
+
+        // Step 4: Now run the normal query
         let sql = `
             SELECT l.*, CONCAT(u.first_name, ' ', u.last_name) as provider_name, 
                    s.created_at as shortlisted_at
@@ -2140,11 +2218,11 @@ app.get('/api/shortlist/search', async (req, res) => {
         // Add search conditions if query is provided
         if (query && query.trim()) {
             sql += ` AND (
-                l.title LIKE ? OR 
-                l.description LIKE ? OR 
-                l.category_name LIKE ? OR 
+                l.title COLLATE utf8mb4_general_ci LIKE ? OR 
+                l.description COLLATE utf8mb4_general_ci LIKE ? OR 
+                l.category_name COLLATE utf8mb4_general_ci LIKE ? OR 
                 CAST(l.price AS CHAR) LIKE ? OR
-                CONCAT(u.first_name, ' ', u.last_name) LIKE ?
+                CONCAT(u.first_name, ' ', u.last_name) COLLATE utf8mb4_general_ci LIKE ?
             )`;
 
             const searchParam = `%${query.trim()}%`;
@@ -2154,13 +2232,20 @@ app.get('/api/shortlist/search', async (req, res) => {
         // Order by most recently shortlisted
         sql += ` ORDER BY s.created_at DESC`;
 
-        console.log('Executing SQL:', sql);
+        console.log('Step 4: Executing full SQL:', sql);
         console.log('With parameters:', params);
 
         const [rows] = await connection.execute(sql, params);
-        await connection.end();
 
         console.log(`Found ${rows.length} shortlisted items matching query for user ${user_id}`);
+        if (rows.length > 0) {
+            console.log('Matched items:', rows.map(row => ({
+                id: row.listing_id,
+                title: row.title
+            })));
+        }
+
+        await connection.end();
 
         res.json({
             success: true,
@@ -2175,6 +2260,8 @@ app.get('/api/shortlist/search', async (req, res) => {
         });
     }
 });
+
+
 
 // Search bookings for a homeowner
 app.get('/api/bookings/user/search', async (req, res) => {
