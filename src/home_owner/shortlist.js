@@ -87,9 +87,10 @@ class shortListUI {
         });
         console.log('Event listeners set up');
 
-        // Setup search event listeners if on shortlist page
-        if (this.searchInput && this.searchBtn) {
-            this.setupSearchEventListeners();
+        // Skip setting up search functionality on non-shortlist pages
+        if (!window.location.pathname.includes('home_owner_shortlists.html')) {
+            console.log('Skipping search setup on non-shortlist page');
+            return;
         }
     }
 
@@ -170,57 +171,86 @@ class shortListUI {
     }
 
     // Perform search and filter services
-    async performSearch() {
-    console.log('Performing search using API');
-
-    const query = this.searchInput.value.trim().toLowerCase();
-    console.log('Search query:', query);
-
-    // Remove any previous "no results" message
-    const existingNoResults = document.querySelector('.no-results');
-    if (existingNoResults) {
-        existingNoResults.remove();
-    }
-
-    // If search is empty, show all shortlisted services
-    if (!query) {
-        this.viewShortlistedServices();
-        return;
-    }
-
-    // Show loading state
-    this.servicesContainer.innerHTML = '<p style="text-align:center;padding:20px;">Searching your shortlisted services...</p>';
-
-    try {
-        // Call the search controller to get filtered results from the API
-        const searchResult = await this.searchController.searchShortlist(this.userId, query);
-
-        // Add detailed logging of the search result
-        console.log('Search result details:', {
-            success: searchResult.success,
-            hasData: Boolean(searchResult.data),
-            dataLength: searchResult.data ? searchResult.data.length : 0,
-            error: searchResult.error || 'No error'
-        });
-
-        // If there's data, log the first item to see what's in it
-        if (searchResult.data && searchResult.data.length > 0) {
-            console.log('First result item:', searchResult.data[0]);
-        }
-
-        if (!searchResult.success || !searchResult.data || searchResult.data.length === 0) {
-            console.log('No results found, showing empty state');
-            this.showNoResultsMessage(query);
+    performSearch() {
+        // Check if we're on the shortlist page before performing search
+        if (!window.location.pathname.includes('home_owner_shortlists.html')) {
+            console.log('Search only available on shortlist page');
             return;
         }
 
-        // Render the filtered services
-        this.renderShortlistedServices(searchResult.data);
-    } catch (error) {
-        console.error('Error searching shortlisted services:', error);
-        this.servicesContainer.innerHTML = `<p style="text-align:center;padding:20px;">Error: ${error.message}</p>`;
+        console.log('Performing search using API');
+
+        const query = this.searchInput.value.trim().toLowerCase();
+
+        // Remove any previous "no results" message
+        const existingNoResults = document.querySelector('.no-results');
+        if (existingNoResults) {
+            existingNoResults.remove();
+        }
+
+        // If search is empty, show all shortlisted services
+        if (!query) {
+            this.viewShortlistedServices();
+            return;
+        }
+
+        // Show loading state
+        this.servicesContainer.innerHTML = '<p style="text-align:center;padding:20px;">Searching your shortlisted services...</p>';
+
+        try {
+            // Call the search controller to get filtered results from the API
+            this.searchController.searchShortlist(this.userId, query)
+                .then(searchResult => {
+                    if (!searchResult.success || !searchResult.data || searchResult.data.length === 0) {
+                        this.showNoResultsMessage(query);
+                        return;
+                    }
+
+                    // Render the filtered services
+                    this.renderShortlistedServices(searchResult.data);
+                })
+                .catch(error => {
+                    console.error('Error searching shortlisted services:', error);
+                    this.servicesContainer.innerHTML = `<p style="text-align:center;padding:20px;">Error: ${error.message}</p>`;
+                });
+        } catch (error) {
+            console.error('Error searching shortlisted services:', error);
+            this.servicesContainer.innerHTML = `<p style="text-align:center;padding:20px;">Error: ${error.message}</p>`;
+        }
     }
-}
+
+    // Show no results message
+    showNoResultsMessage(query) {
+        const noResultsElement = document.createElement('div');
+        noResultsElement.className = 'no-results';
+        noResultsElement.style.gridColumn = '1 / -1';
+        noResultsElement.style.textAlign = 'center';
+        noResultsElement.style.padding = '30px';
+        noResultsElement.style.backgroundColor = 'white';
+        noResultsElement.style.borderRadius = '8px';
+        noResultsElement.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+        noResultsElement.style.margin = '20px 0';
+
+        noResultsElement.innerHTML = `
+            <p style="margin-bottom: 15px; font-size: 16px;">No services match your search for "<strong>${query}</strong>"</p>
+            <button class="btn" style="background-color: #ff5722; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer;">Clear Search</button>
+        `;
+
+        this.servicesContainer.appendChild(noResultsElement);
+
+        // Add event listener to the clear button
+        const clearButton = noResultsElement.querySelector('button');
+        clearButton.addEventListener('click', () => {
+            this.searchInput.value = '';
+            this.performSearch();
+
+            // Hide the clear button as well
+            const clearBtn = document.getElementById('search-clear-btn');
+            if (clearBtn) {
+                clearBtn.style.display = 'none';
+            }
+        });
+    }
 
     // Improved method to add shortlist buttons to cards with better status checking
     async addShortlistButtonsToCards() {
@@ -449,11 +479,18 @@ class shortListUI {
     initShortlistPageElements() {
         this.servicesContainer = document.getElementById('services-container');
         this.emptyState = document.getElementById('empty-state');
+
+        // Update to use the renamed elements
         this.searchInput = document.getElementById('shortlist-search-input');
         this.searchBtn = document.getElementById('shortlist-search-btn');
 
         // Initialize user display
         this.initUserDisplay();
+
+        // If search elements exist, set up the search UI
+        if (this.searchInput && this.searchBtn) {
+            this.setupSearchUI();
+        }
     }
 
     initUserDisplay() {
@@ -467,35 +504,69 @@ class shortListUI {
         if (userAvatar) userAvatar.textContent = userInitial;
     }
 
-setupShortlistPageListeners() {
-    // Search input for the shortlist page
-    if (this.searchInput) {
-        // Use debounce for smoother search experience
-        let debounceTimer;
-        this.searchInput.addEventListener('input', () => {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => this.filterShortlistedServices(), 300); // 300ms debounce
-        });
+    setupShortlistPageListeners() {
+        // Only set up search listeners if we're on the shortlist page
+        if (window.location.pathname.includes('home_owner_shortlists.html') &&
+            this.searchInput && this.searchBtn) {
 
-        // Also handle Enter key
-        this.searchInput.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') {
-                this.filterShortlistedServices();
+            console.log('Setting up search listeners on shortlist page');
+
+            // Search button click
+            this.searchBtn.addEventListener('click', () => {
+                this.performSearch();
+            });
+
+            // Live search as user types (with debounce)
+            let debounceTimer;
+            this.searchInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => this.performSearch(), 300); // 300ms debounce
+
+                // Show/hide the clear button
+                const clearBtn = document.getElementById('search-clear-btn');
+                if (clearBtn) {
+                    clearBtn.style.display = this.searchInput.value ? 'block' : 'none';
+                }
+            });
+
+            // Search on Enter key
+            this.searchInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    this.performSearch();
+                }
+            });
+
+            // Clear search when button clicked
+            const clearBtn = document.getElementById('search-clear-btn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    this.searchInput.value = '';
+                    this.searchInput.focus();
+                    this.performSearch();
+                    clearBtn.style.display = 'none';
+                });
             }
-        });
-    }
-    if (this.searchBtn) {
-        this.searchBtn.addEventListener('click', () => {
-            this.filterShortlistedServices();
-        });
-    }
 
-        // Event delegation for remove buttons
+            // Initial search if input has value on page load
+            if (this.searchInput.value.trim()) {
+                this.performSearch();
+            }
+        }
+
+        // Event delegation for other buttons (this part remains for all pages)
         document.addEventListener('click', (event) => {
             if (event.target.classList.contains('view-btn')) {
                 const card = event.target.closest('.service-card');
                 const serviceId = card?.dataset.id;
                 if (serviceId) window.location.href = `../viewDetails.html?id=${serviceId}`;
+            }
+
+            // Handle remove button clicks if they exist
+            if (event.target.classList.contains('remove-btn')) {
+                const listingId = event.target.dataset.id;
+                if (listingId && this.userId) {
+                    this.handleShortlistButtonClick(listingId, event.target);
+                }
             }
         });
     }
@@ -513,23 +584,33 @@ setupShortlistPageListeners() {
             // Get shortlisted items for the user
             const shortlistResult = await this.getUserController.getUserShortlist(this.userId);
 
-            // Add detailed log of all shortlisted items
-            console.log('All shortlisted items:', shortlistResult.data);
-
-            // Check if any shortlisted item contains "test07" to confirm it exists
-            if (shortlistResult.data && shortlistResult.data.length > 0) {
-                const hasTest07 = shortlistResult.data.some(item => {
-                    return JSON.stringify(item).toLowerCase().includes('test07');
-                });
-                console.log('Contains item with test07:', hasTest07);
-            }
-
             if (!shortlistResult.success || !shortlistResult.data || shortlistResult.data.length === 0) {
                 this.showEmptyState();
                 return;
             }
 
-            // Rest of your code...
+            // Get all service listings
+            const serviceEntity = new service();
+            const servicesResult = await serviceEntity.readCleaningService();
+
+            if (!servicesResult.success) {
+                this.servicesContainer.innerHTML = '<p style="text-align:center;padding:20px;">Failed to load services. Please try again later.</p>';
+                return;
+            }
+
+            // Match shortlisted IDs with full service data
+            const shortlistedIds = shortlistResult.data.map(item => item.listing_id);
+            const shortlistedServices = servicesResult.data.filter(service => {
+                // Check various ID formats that might be used
+                return shortlistedIds.includes(service.listing_id) ||
+                       shortlistedIds.includes(service.id) ||
+                       (service._id && shortlistedIds.includes(service._id.toString()));
+            });
+
+            console.log(`Found ${shortlistedServices.length} shortlisted services`);
+
+            // Render the services
+            this.renderShortlistedServices(shortlistedServices);
         } catch (error) {
             console.error('Error loading shortlisted services:', error);
             this.servicesContainer.innerHTML = '<p style="text-align:center;padding:20px;">An error occurred while loading your shortlisted services.</p>';
@@ -1115,53 +1196,47 @@ class ShortListEntity {
 
     //search a particular service from homeowner's shortlist
     async searchShortlist(userId, query) {
-    try {
-        console.log(`Entity.searchShortlist called with userId: ${userId}, query: ${query}`);
+        try {
+            console.log(`Entity.searchShortlist called with userId: ${userId}, query: ${query}`);
 
-        // Input validation
-        if (!userId) {
-            console.error('Missing required user ID for shortlist search');
-            return { success: false, error: 'Missing required user ID' };
+            // Input validation
+            if (!userId) {
+                console.error('Missing required user ID for shortlist search');
+                return { success: false, error: 'Missing required user ID' };
+            }
+
+            // Build the endpoint
+            let endpoint = `${this.apiBaseUrl}/shortlist/search?user_id=${encodeURIComponent(userId)}`;
+
+            // Add search query parameter if provided
+            if (query && query.trim()) {
+                endpoint += `&query=${encodeURIComponent(query.trim())}`;
+            }
+
+            console.log('Search endpoint:', endpoint);
+
+            // Make API request to search shortlisted items
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Shortlist search API error:', errorText);
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Shortlist search API results:', result);
+
+            return result;
+        } catch (error) {
+            console.error('Error searching shortlisted services:', error);
+            return {
+                success: false,
+                error: error.message,
+                data: []
+            };
         }
-
-        // Build the endpoint
-        let endpoint = `${this.apiBaseUrl}/shortlist/search?user_id=${encodeURIComponent(userId)}`;
-
-        // Add search query parameter if provided
-        if (query && query.trim()) {
-            endpoint += `&query=${encodeURIComponent(query.trim())}`;
-        }
-
-        console.log('Search endpoint:', endpoint);
-
-        // Make API request to search shortlisted items
-        const response = await fetch(endpoint);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Shortlist search API error:', errorText);
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        // Add more detailed logging here
-        console.log('Shortlist search API results:', {
-            success: result.success,
-            dataLength: result.data ? result.data.length : 0,
-            data: result.data
-        });
-
-        return result;
-    } catch (error) {
-        console.error('Error searching shortlisted services:', error);
-        return {
-            success: false,
-            error: error.message,
-            data: []
-        };
     }
-}
 
     // Get all shortlisted listings for a user
     async getUserShortlist(userId) {
