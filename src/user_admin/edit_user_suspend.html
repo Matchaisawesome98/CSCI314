@@ -178,10 +178,14 @@
             animation: highlight-row 2s ease-in-out;
         }
     </style>
+    <script src="../index.js"></script>
     <script src="user_admin.js"></script>
 </head>
 <body>
 <h1>User Admin Dashboard</h1>
+<div style="position: absolute; top: 20px; right: 20px;">
+    <button id="logout-btn" class="btn" style="background-color: #e74c3c; color: white;">Logout</button>
+</div>
 <button id="viewAllButton" onclick="initViewUsers()">View All Users</button>
 <div id="searchContainer" class="search-container" style="display: none;">
     <input type="text" id="searchInput" placeholder="Enter user name or information to search..." onkeydown="handleSearchKeyPress(event)">
