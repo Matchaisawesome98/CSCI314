@@ -20,6 +20,7 @@ class ServiceDetailsUI {
         }
     }
 
+    //Sets up event handlers for "View Details" buttons on the homepage.
     initializeHomePage() {
         console.log('Initializing homepage functionality');
         // No need to initialize user info on homepage as it's handled elsewhere
@@ -38,6 +39,7 @@ class ServiceDetailsUI {
         });
     }
 
+    //Sets up event delegation for "View Details" buttons, using a single document-level click listener.
     setupViewDetailsButtons() {
         console.log('Setting up view details button handlers');
 
@@ -60,6 +62,7 @@ class ServiceDetailsUI {
         });
     }
 
+    //Redirects the user to the details page with the appropriate service ID in the URL.
     navigateToServiceDetails(serviceId) {
         if (!serviceId) {
             console.error('No service ID provided for navigation');
@@ -102,7 +105,7 @@ class ServiceDetailsUI {
         }
     }
 
-    // Load service details
+    // Load service details by getting the service ID from URL parameters and fetches the service details from the controller.
     async loadServiceDetails() {
         try {
             // Get service ID from URL parameter
@@ -137,7 +140,7 @@ class ServiceDetailsUI {
         }
     }
 
-    // Update the UI with service details
+    // Updates all UI elements with the service data (title, price, description, etc.).
     updateServiceUI(service, serviceId) {
         // Update service information
         document.getElementById('service-title').textContent = service.title || 'Unnamed Service';
@@ -222,6 +225,7 @@ class ServiceDetailsController {
         console.log('ServiceDetailsController initialized');
     }
 
+    //Validates the service ID and calls the entity to fetch service details.
     async getServiceDetails(serviceId) {
         console.log('ServiceDetailsController.getServiceDetails called with:', serviceId);
 
@@ -245,6 +249,7 @@ class UserController {
         console.log('UserController initialized');
     }
 
+    //Fetches current user information from the entity layer.
     async getCurrentUser() {
         console.log('UserController.getCurrentUser called');
 
@@ -304,6 +309,7 @@ class UserEntity {
         console.log('UserEntity initialized');
     }
 
+    //Just simply gets user info from local storage
     async getCurrentUser() {
         console.log('UserEntity.getCurrentUser called');
 

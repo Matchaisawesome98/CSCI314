@@ -108,7 +108,7 @@ class readServicePage{
         this.displayServices();
     }
 
-    //UI to filter based on category
+    //Sets up event listeners for category filtering
     setupFilterListeners() {
         if (!this.filterChips?.length) return;
 
@@ -226,7 +226,7 @@ class readServicePage{
         return serviceUserId === currentUserId;
     }
 
-    // Get provider name - use first priority field or fallback to alternatives
+    // Extracts provider name from service data
     getProviderName(service) {
         // First try the joined provider_name field
         if (service.provider_name) {
@@ -262,6 +262,7 @@ class readServicePage{
         };
     }
 
+    //Creates and displays service cards
     renderServiceCards(services, showManagementControls = false) {
         this.servicesContainer.innerHTML = '';
         const template = document.getElementById('service-card-template');
@@ -337,7 +338,7 @@ class readServiceController {
         this.entity = new service();
     }
 
-    // Pass the filter to the entity layer and apply business logic for filtering
+    //  Gets services with filtering logic
     async readCleaningServiceController(filter = 'all') {
         const result = await this.entity.readCleaningService();
 
@@ -370,7 +371,7 @@ class readServiceController {
         return result;
     }
 
-    // Get services for a specific user
+    // Gets services for the current user
     async getUserListingsController() {
         const currentUserId = localStorage.getItem('currentUserId');
         if (!currentUserId) {
@@ -392,6 +393,7 @@ class readServiceController {
         }
     }
 
+    //Gets a specific service by ID
     async getServiceByIdController(serviceId) {
     if (!serviceId) {
         console.error('Missing service ID for lookup');
@@ -470,8 +472,6 @@ class serviceManagementUI {
         }
     }
 
-    // SECTION: Initialization Methods
-
     initDomElements() {
         this.addServiceBtn = document.getElementById('add-service-btn');
         this.serviceForm = document.getElementById('service-form');
@@ -486,6 +486,7 @@ class serviceManagementUI {
         }
     }
 
+    //Sets up event handlers for edit/delete
     setupManagementEventListeners() {
         document.addEventListener('click', event => {
             // Handle edit button clicks
@@ -502,14 +503,14 @@ class serviceManagementUI {
         });
     }
 
+    //Shows the user's service listings
     displayUserServices() {
         // Ensures we don't call this on pages other than the user listings page
         const servicePage = this.servicePage || new readServicePage();
         servicePage.displayUserListings();
     }
 
-    // SECTION: Form Handling Methods
-
+    //Opens form for editing a service
     async openEditForm(serviceId) {
         try {
             console.log('Opening edit form for service ID:', serviceId);
@@ -546,6 +547,7 @@ class serviceManagementUI {
         }
     }
 
+    //Processes form submission for updating
     handleFormSubmit(event) {
         event.preventDefault();
 
@@ -589,7 +591,6 @@ class serviceManagementUI {
         document.getElementById('service-modal').style.display = 'none';
     }
 
-    // SECTION: Delete Handling Methods
 
     openDeleteConfirmation(serviceId) {
         console.log('Opening delete confirmation for service ID:', serviceId);
@@ -641,6 +642,7 @@ class serviceManagementUI {
         }
     }
 
+    //Processes service deletion
     async handleDeleteConfirm() {
         const serviceId = document.getElementById('delete-service-id').value;
         console.log('Confirming deletion of service ID:', serviceId);
@@ -701,6 +703,7 @@ class serviceManagementUI {
         this.showNotification('Failed to delete service. Please try again.', '#F44336');
     }
 
+    //Displays some other notification messages
     showNotification(message, bgColor) {
         const notification = document.getElementById('notification');
         if (notification) {
@@ -785,6 +788,7 @@ class searchUI {
         }
     }
 
+    //Processes search requests
     async handleSearch() {
         const query = this.searchInput?.value?.trim() || '';
 
@@ -825,6 +829,7 @@ class searchUI {
         }
     }
 
+    //Restores original listings after clearing search
     handleClearSearch() {
         console.log('Search cleared, restoring original listings');
 
@@ -878,6 +883,7 @@ class searchUI {
         }
     }
 
+    //Displays loading indicator during search
     showLoadingState() {
         // Simple loading indicator
         if (this.servicesContainer) {
@@ -885,6 +891,7 @@ class searchUI {
         }
     }
 
+    //Shows search results
     displayResults(result, isUserListings) {
         if (!this.servicesContainer) {
             console.error('Services container not found');
@@ -1036,6 +1043,7 @@ class searchUI {
         }
     }
 
+    //Reattaches edit/delete handlers after search
     reattachManagementEventListeners() {
         // Reattach event listeners to edit/delete buttons after search
         const editButtons = document.querySelectorAll('.edit-service-btn');

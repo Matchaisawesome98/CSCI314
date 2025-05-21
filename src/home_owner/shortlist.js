@@ -94,7 +94,7 @@ class shortListUI {
         }
     }
 
-    // Setup search UI elements
+    // Creates and configures the search interface elements.
     setupSearchUI() {
         console.log('Setting up search UI elements');
 
@@ -124,7 +124,7 @@ class shortListUI {
         }
     }
 
-    // Setup search-related event listeners
+    // Sets up event listeners for search functionality.
     setupSearchEventListeners() {
         console.log('Setting up search event listeners');
 
@@ -170,7 +170,7 @@ class shortListUI {
         }
     }
 
-    // Perform search and filter services
+    // Executes a search and filters services based on the search query.
     performSearch() {
         // Check if we're on the shortlist page before performing search
         if (!window.location.pathname.includes('home_owner_shortlists.html')) {
@@ -252,7 +252,7 @@ class shortListUI {
         });
     }
 
-    // Improved method to add shortlist buttons to cards with better status checking
+    // Adds shortlist buttons to all service cards on the page.
     async addShortlistButtonsToCards() {
         // Skip if user is not a home_owner or not logged in
         if (this.userRole !== 'home_owner' || !this.userId) {
@@ -307,7 +307,7 @@ class shortListUI {
         }
     }
 
-    // Update an existing shortlist button based on current status
+    // Updates a shortlist button based on current shortlist status.
     async updateExistingShortlistButton(button, listingId) {
         try {
             if (!this.userId) return;
@@ -355,7 +355,7 @@ class shortListUI {
         }
     }
 
-    // Handle shortlist button click with improved error handling
+    // Handles when a user clicks a shortlist/unshortlist button.
     async handleShortlistButtonClick(listingId, buttonElement) {
         try {
             console.log('Handling shortlist button click for ID:', listingId);
@@ -452,30 +452,32 @@ class shortListUI {
         }
     }
 
-    updateButtonState(button, isShortlisted) {
-        if (isShortlisted) {
-            // Check if we're on the details page or cards page
-            const isDetailsPage = window.location.href.includes('viewDetails.html');
-
-            if (isDetailsPage) {
-                // On details page, use "Unshortlist" text
-                button.innerHTML = '<span class="shortlist-icon">❤️</span> Unshortlist';
-            } else {
-                // On cards/homepage, use "Shortlisted" text
-                button.innerHTML = '❤️ Shortlisted';
-            }
-            button.classList.add('shortlisted');
-        } else {
-            // Not shortlisted - same for both pages
-            button.innerHTML = window.location.href.includes('viewDetails.html') ?
-                '<span class="shortlist-icon">🤍</span> Shortlist' :
-                '🤍 Shortlist';
-            button.classList.remove('shortlisted');
-        }
-    }
+    // //Updates a button's appearance based on shortlist status.
+    // updateButtonState(button, isShortlisted) {
+    //     if (isShortlisted) {
+    //         // Check if we're on the details page or cards page
+    //         const isDetailsPage = window.location.href.includes('viewDetails.html');
+    //
+    //         if (isDetailsPage) {
+    //             // On details page, use "Unshortlist" text
+    //             button.innerHTML = '<span class="shortlist-icon">❤️</span> Unshortlist';
+    //         } else {
+    //             // On cards/homepage, use "Shortlisted" text
+    //             button.innerHTML = '❤️ Shortlisted';
+    //         }
+    //         button.classList.add('shortlisted');
+    //     } else {
+    //         // Not shortlisted - same for both pages
+    //         button.innerHTML = window.location.href.includes('viewDetails.html') ?
+    //             '<span class="shortlist-icon">🤍</span> Shortlist' :
+    //             '🤍 Shortlist';
+    //         button.classList.remove('shortlisted');
+    //     }
+    // }
 
     // ---------- SHORTLIST PAGE SPECIFIC METHODS ----------
 
+    //Initializes UI elements specific to the shortlist page.
     initShortlistPageElements() {
         this.servicesContainer = document.getElementById('services-container');
         this.emptyState = document.getElementById('empty-state');
@@ -571,6 +573,7 @@ class shortListUI {
         });
     }
 
+    //Loads and displays all shortlisted services for the user.
     async viewShortlistedServices() {
         if (!this.userId) {
             this.showEmptyState("Please log in to view your shortlisted services");
@@ -616,7 +619,7 @@ class shortListUI {
             this.servicesContainer.innerHTML = '<p style="text-align:center;padding:20px;">An error occurred while loading your shortlisted services.</p>';
         }
     }
-
+        //Formats a service object for display in the UI.
         prepareServiceForDisplay(service) {
         return {
             id: service.listing_id || service.id || service._id || '0',
@@ -641,7 +644,7 @@ class shortListUI {
         return 'https://placehold.co/600x400?text=Cleaning+Service';
     }
 
-    // Map category to filter value
+    // Maps a service category to a filter value.
     getCategoryFilter(category) {
         if (!category) return 'all';
 
@@ -661,13 +664,13 @@ class shortListUI {
         return 'all';
     }
 
-    // Check if user is the owner of the service listing
+    // Checks if the current user is the owner of a service.
     isServiceOwner(serviceUserId) {
         const currentUserId = localStorage.getItem('currentUserId');
         return serviceUserId === currentUserId;
     }
 
-    // Get provider name - use first priority field or fallback to alternatives
+    // Extracts the provider name from a service object.
     getProviderName(service) {
         // First try the joined provider_name field
         if (service.provider_name) {
@@ -688,7 +691,7 @@ class shortListUI {
         return 'Unknown Provider';
     }
 
-
+    //Renders service cards for shortlisted services.
     renderShortlistedServices(services) {
         // Clear the container
         this.servicesContainer.innerHTML = '';
@@ -761,7 +764,7 @@ class shortListUI {
         });
     }
 
-    // client sided filtering of services
+    // Filters shortlisted services based on search criteria.
     async filterShortlistedServices() {
         const query = this.searchInput.value.trim().toLowerCase();
 
@@ -792,7 +795,7 @@ class shortListUI {
         }
     }
 
-
+    //Shows a message when no search results match the query.
     showEmptySearchResults(query) {
         // Clear existing content
         this.servicesContainer.innerHTML = '';
@@ -821,6 +824,7 @@ class shortListUI {
         this.servicesContainer.appendChild(noResults);
     }
 
+    //Displays an empty state message when no shortlisted services exist.
     showEmptyState(message) {
         // Clear services container
         this.servicesContainer.innerHTML = '';
@@ -837,7 +841,8 @@ class shortListUI {
             }
         }
     }
-    // Show toast notification
+
+    // Shows a toast notification with a message.
     showToast(message, type = 'info') {
         // Check if toast container exists, create if not
         let toastContainer = document.getElementById('toast-container');
@@ -886,11 +891,11 @@ class shortListUI {
         }, 3000);
     }
 
-    // Clear cache method in UI
-    clearCache() {
-        this.shortlistCache.clear();
-        console.log('Shortlist cache cleared');
-    }
+    // // Clears the shortlist cache.
+    // clearCache() {
+    //     this.shortlistCache.clear();
+    //     console.log('Shortlist cache cleared');
+    // }
 
     // Static initializer with explicit page load checks
     static {

@@ -1,8 +1,4 @@
 // ===================== BOUNDARY LAYER =====================
-/**
- * CategoryManagementUI - Boundary class responsible for UI interactions
- * Handles all DOM interactions and UI updates for category management
- */
 class CategoryManagementUI {
     constructor() {
         // Initialize instance variables
@@ -79,7 +75,7 @@ class CategoryManagementUI {
     }
 
     /**
-     * Setup clear search button
+     * Sets up the button to clear the search input
      */
     setupClearSearchButton() {
         // Check if the clear button already exists
@@ -220,7 +216,7 @@ class CategoryManagementUI {
     }
 
     /**
-     * Clear the search input and reset to show all categories
+     * Clears the search input and resets to show all categories
      */
     clearSearch() {
         // Clear the search input
@@ -246,7 +242,7 @@ class CategoryManagementUI {
     }
 
     /**
-     * Load all categories
+     * Loads all categories from the back-end
      */
     async loadCategories() {
         try {
@@ -273,7 +269,7 @@ class CategoryManagementUI {
     }
 
     /**
-     * Perform search for categories
+     * Performs search for categories based on a query
      */
     async performSearch(query) {
         try {
@@ -311,7 +307,7 @@ class CategoryManagementUI {
     }
 
     /**
-     * Display categories in the table
+     * Displays categories in the table UI
      */
     displayCategories() {
         if (!this.categoriesContainer) return;
@@ -333,7 +329,7 @@ class CategoryManagementUI {
     }
 
     /**
-     * Create a category table row
+     * Creates a table row for a specific category
      */
     createCategoryRow(category) {
         const row = document.createElement('tr');
@@ -353,7 +349,7 @@ class CategoryManagementUI {
     }
 
     /**
-     * Show the add category modal
+     * Shows the modal for adding a new category
      */
     showAddCategoryModal() {
         // Reset form fields
@@ -368,7 +364,7 @@ class CategoryManagementUI {
     }
 
     /**
-     * Show the edit category modal
+     * Shows the modal for editing a category
      */
     async showEditCategoryModal(categoryCode) {
         try {
@@ -624,7 +620,7 @@ class CategoryManagementUI {
     }
 
     /**
-     * Show error message in the error container
+     * Shows an error message in the error container
      */
     showErrorMessage(message) {
         if (this.errorContainer) {
@@ -694,11 +690,13 @@ class GetCategoriesController {
         this.entity = new CategoryEntity();
     }
 
+    //Gets all categories
     async getCategories() {
         console.log('GetCategoriesController.getCategories called');
         return await this.entity.getCategories();
     }
 
+    //Gets a specific category by its code
     async getCategoryByCode(categoryCode) {
         console.log('GetCategoriesController.getCategoryByCode called with:', categoryCode);
         if (!categoryCode) {
@@ -718,6 +716,7 @@ class AddCategoryController {
         this.entity = new CategoryEntity();
     }
 
+    //Adds a new category after validation
     async addCategory(categoryData) {
         console.log('AddCategoryController.addCategory called with:', categoryData);
 
@@ -739,6 +738,7 @@ class UpdateCategoryController {
         this.entity = new CategoryEntity();
     }
 
+    //Updates an existing category after validation
     async updateCategory(categoryCode, categoryData) {
         console.log('UpdateCategoryController.updateCategory called with:', categoryCode, categoryData);
 
@@ -764,6 +764,7 @@ class DeleteCategoryController {
         this.entity = new CategoryEntity();
     }
 
+    //Deletes a category by its code
     async deleteCategory(categoryCode) {
         console.log('DeleteCategoryController.deleteCategory called with:', categoryCode);
 
@@ -785,6 +786,7 @@ class SearchCategoriesController {
         this.entity = new CategoryEntity();
     }
 
+    //Searches categories based on a query
     async searchCategories(query) {
         console.log('SearchCategoriesController.searchCategories called with:', query);
         return await this.entity.searchCategories(query);
@@ -792,7 +794,6 @@ class SearchCategoriesController {
 }
 
 // ===================== ENTITY LAYER =====================
-// Entity class that handles all data operations related to categories
 class CategoryEntity {
     constructor() {
         console.log('Initializing CategoryEntity');

@@ -35,9 +35,7 @@ class CleanerBookingsUI {
         }
     }
 
-    /**
-     * Initialize controller classes
-     */
+    //Creates instances of controller classes for different operations
     initControllers() {
         // Create a controller for each operation type
         this.getBookingsController = new GetProviderBookingsController();
@@ -46,9 +44,8 @@ class CleanerBookingsUI {
         this.searchBookingsController = new SearchBookingsController();
     }
 
-    /**
-     * Initialize DOM element references
-     */
+
+    //Initialize DOM element references
     initDomElements() {
         // Card view elements
         this.bookingsContainer = document.getElementById('cleaner-bookings-container');
@@ -74,9 +71,7 @@ class CleanerBookingsUI {
         this.displayToggleBtn = document.getElementById('display-toggle-btn');
     }
 
-    /**
-     * Set up event listeners for UI elements
-     */
+    //Sets up event handlers for UI elements
     setupEventListeners() {
         // Status filter change
         if (this.statusFilter) {
@@ -162,9 +157,7 @@ class CleanerBookingsUI {
         });
     }
 
-    /**
-     * Load all bookings for the current provider
-     */
+    //Fetches all bookings for the current provider
     async loadBookings() {
         try {
             // Show loading indicator
@@ -202,9 +195,7 @@ class CleanerBookingsUI {
         }
     }
 
-    /**
-     * Display bookings with optional filtering - chooses between card and table display
-     */
+    //Determines how to display bookings based on display mode (table/card) and filters
     displayBookings() {
         // Check if we have bookings to display
         if (!this.bookings || this.bookings.length === 0) {
@@ -269,8 +260,8 @@ class CleanerBookingsUI {
         });
 
         console.log('Display mode:', this.displayMode);
-console.log('Filtered bookings:', filteredBookings);
-console.log('DOM elements exist:', {
+    console.log('Filtered bookings:', filteredBookings);
+    console.log('DOM elements exist:', {
     bookingsContainer: !!this.bookingsContainer,
     tableBody: !!this.tableBody,
     bookingsTable: !!this.bookingsTable
@@ -295,9 +286,7 @@ console.log('DOM elements exist:', {
         }
     }
 
-    /**
-     * Display bookings in card format
-     */
+    //Renders bookings in card format
     displayBookingsCards(filteredBookings) {
         if (!this.bookingsContainer) return;
 
@@ -311,9 +300,7 @@ console.log('DOM elements exist:', {
         });
     }
 
-    /**
-     * Display bookings in table format
-     */
+    //Renders bookings in table format
     displayBookingsTable(filteredBookings) {
         if (!this.tableBody) return;
 
@@ -355,9 +342,7 @@ console.log('DOM elements exist:', {
         });
     }
 
-    /**
-     * Create a booking card element
-     */
+    //Creates a card element for a booking
     createBookingCard(booking) {
         const card = document.createElement('div');
         card.className = 'booking-card';
@@ -392,9 +377,7 @@ console.log('DOM elements exist:', {
         return card;
     }
 
-    /**
-     * Get appropriate booking action buttons based on status
-     */
+    //Returns appropriate action buttons based on booking status
     getBookingActions(booking) {
         const bookingId = booking.booking_id;
         let actions = `<button class="btn card-btn view-booking-btn" data-booking-id="${bookingId}">View Details</button>`;
@@ -417,9 +400,7 @@ console.log('DOM elements exist:', {
         return actions;
     }
 
-    /**
-     * Create status dropdown based on booking status
-     */
+    //Creates a dropdown for status selection in table view
     createStatusDropdown(booking) {
         const isDisabled = booking.status === 'completed' || booking.status === 'cancelled';
         const statuses = [
@@ -450,9 +431,7 @@ console.log('DOM elements exist:', {
         return selectHtml;
     }
 
-    /**
-     * Get human-readable status label
-     */
+    //Returns a human-readable status label
     getStatusLabel(status) {
         switch (status) {
             case 'pending_approval': return 'Pending Approval';
@@ -463,16 +442,12 @@ console.log('DOM elements exist:', {
         }
     }
 
-    /**
-     * Format status for display
-     */
+    //Formats status for display
     formatStatus(status) {
         return this.getStatusLabel(status);
     }
 
-    /**
-     * Update a booking status - works for both card and table views
-     */
+    //Updates a booking status
     async updateBookingStatus(bookingId, newStatus) {
         try {
             // For table view with dropdowns, we already have the confirmation from modal
@@ -528,9 +503,7 @@ console.log('DOM elements exist:', {
         }
     }
 
-    /**
-     * Show booking details in modal
-     */
+    //Shows detailed booking information in a modal
     async showBookingDetails(bookingId) {
         try {
             // Show loading state
@@ -600,9 +573,7 @@ console.log('DOM elements exist:', {
         }
     }
 
-    /**
-     * Get detailed booking actions for the modal
-     */
+    //Returns action buttons for the details modal
     getDetailedBookingActions(booking) {
         const bookingId = booking.booking_id;
         let actions = '';
@@ -637,9 +608,7 @@ console.log('DOM elements exist:', {
         return actions;
     }
 
-    /**
-     * Set up action buttons in the detail modal
-     */
+    //Sets up event listeners for action buttons in the details modal
     setupDetailActionButtons(booking) {
         if (!this.bookingDetailsModal) return;
 
@@ -665,18 +634,14 @@ console.log('DOM elements exist:', {
         }
     }
 
-    /**
-     * Close booking details modal
-     */
+    //Closes the booking details modal
     closeBookingModal() {
         if (this.bookingDetailsModal) {
             this.bookingDetailsModal.style.display = 'none';
         }
     }
 
-    /**
-     * Show confirmation modal for status changes (used in table view)
-     */
+    //Shows confirmation modal for status changes
     showConfirmationModal(newStatusText) {
         if (!this.statusConfirmModal || !this.modalMessage) return;
 
@@ -684,9 +649,7 @@ console.log('DOM elements exist:', {
         this.statusConfirmModal.style.display = 'flex';
     }
 
-    /**
-     * Confirm status change from modal
-     */
+    //Handles confirmation of status change
     confirmStatusChange() {
         // Hide modal
         if (this.statusConfirmModal) {
@@ -702,9 +665,7 @@ console.log('DOM elements exist:', {
         }
     }
 
-    /**
-     * Cancel status change from modal
-     */
+    //Handles cancellation of status change
     cancelStatusChange() {
         // Hide modal
         if (this.statusConfirmModal) {
@@ -725,9 +686,7 @@ console.log('DOM elements exist:', {
         };
     }
 
-    /**
- * Perform search on bookings
- */
+    // Searches bookings with a query string
     async performSearch() {
         if (!this.searchInput) return;
 
@@ -775,9 +734,7 @@ console.log('DOM elements exist:', {
         }
     }
 
-    /**
- * Handle search results - show "no results" message if needed
- */
+    //Handles display of search results or "no results" message
         handleSearchResults(matchFound, query, totalItems) {
             // Remove any existing "no results" message
             const existingNoResults = document.querySelector('.no-results');
@@ -820,9 +777,7 @@ console.log('DOM elements exist:', {
             }
         }
 
-    /**
-     * Format date for display
-     */
+    //formats date
     formatDate(dateString) {
         if (!dateString) return 'N/A';
 
@@ -833,7 +788,7 @@ console.log('DOM elements exist:', {
     }
 
     /**
-     * Format time for display
+     * formats time
      */
     formatTime(timeString) {
         if (!timeString) return 'N/A';
@@ -1017,9 +972,6 @@ class SearchBookingsController {
 
     /**
      * Search bookings with a query string
-     * @param {string} providerId - ID of the provider
-     * @param {string} query - Search query
-     * @returns {Promise<object>} - Result of the search
      */
     async searchBookings(providerId, query) {
         try {

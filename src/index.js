@@ -4,6 +4,7 @@
  * Handles all DOM interactions and UI updates for login functionality
  */
 class LoginUI {
+    //Initializes the LoginUI instance, creates controller instances, and sets up event listeners.
     constructor() {
         // Initialize instance variables
         console.log('LoginUI constructor called');
@@ -16,6 +17,7 @@ class LoginUI {
         this.setupEventListeners();
     }
 
+    //Sets up event listeners for the login form and logout button.
     setupEventListeners() {
         console.log('Setting up event listeners');
 
@@ -42,14 +44,15 @@ class LoginUI {
                 console.error('Login form not found even after DOM loaded');
             }
 
-            // Add logout button event listener if it exists
-            const logoutButton = document.getElementById('logoutButton');
-            if (logoutButton) {
-                logoutButton.addEventListener('click', this.handleLogout.bind(this));
-            }
+            // // Add logout button event listener if it exists
+            // const logoutButton = document.getElementById('logoutButton');
+            // if (logoutButton) {
+            //     logoutButton.addEventListener('click', this.handleLogout.bind(this));
+            // }
         });
     }
 
+    //Handles the login form submission, gets user credentials, and calls the login controller.
     async handleLoginSubmit(event) {
         console.log('Login form submitted');
         event.preventDefault(); // Prevent form submission
@@ -71,21 +74,20 @@ class LoginUI {
         return false; // Prevent form submission
     }
 
-    async handleLogout(event) {
-        if (event) event.preventDefault();
-        console.log('Logout initiated');
+    // async handleLogout(event) {
+    //     if (event) event.preventDefault();
+    //     console.log('Logout initiated');
+    //
+    //     // Call the logout controller
+    //     try {
+    //         await this.logoutController.processLogout();
+    //     } catch (error) {
+    //         console.error('Error during logout:', error);
+    //         alert('Logout failed. Please try again.');
+    //     }
+    // }
 
-        // Call the logout controller
-        try {
-            await this.logoutController.processLogout();
-        } catch (error) {
-            console.error('Error during logout:', error);
-            alert('Logout failed. Please try again.');
-        }
-    }
-
-
-
+    //Retrieves the username and password values from form input fields.
     getUserInput() {
         const username = document.getElementById("username").value;
         const password = document.getElementById("password").value;
@@ -115,6 +117,7 @@ class LoginUI {
         }
     }
 
+    //Redirects the user to appropriate homepage based on their role.
     navigateToHomePage(role) {
         let targetPage;
         const processedRole = (role || '').toString().trim().toLowerCase();
@@ -141,7 +144,7 @@ class LoginUI {
         window.location.href = targetPage;
     }
 
-    // Moved from ProcessLoginController to LoginUI (boundary layer)
+    // Processes authentication results, storing user data in localStorage and redirecting if successful.
     handleLoginResult(authResult) {
         if (authResult.authenticated) {
             // Store user role for reference
@@ -160,6 +163,8 @@ class LoginUI {
         }
     }
 
+
+    //Ensures the LoginUI is properly initialized when the page loads.
     static {
         console.log('LoginUI static initializer running');
         let isInitialized = false;
@@ -213,6 +218,7 @@ class LogoutUI {
         this.setupEventListeners();
     }
 
+    //Sets up event listeners for the logout button.
     setupEventListeners() {
         console.log('Setting up logout UI event listeners');
 
@@ -226,6 +232,8 @@ class LogoutUI {
         }
     }
 
+
+    //Handles logout button clicks by calling the logout controller.
     async handleLogout(event) {
         if (event) event.preventDefault();
         console.log('LogoutUI: Logout initiated');
@@ -243,6 +251,7 @@ class LogoutUI {
         }
     }
 
+    //Removes user-related data from localStorage.
     clearLocalStorage() {
         console.log('LogoutUI: Clearing local storage');
         localStorage.removeItem('userRole');
@@ -251,12 +260,13 @@ class LogoutUI {
         localStorage.removeItem('shortlist');
     }
 
+    //Redirects the user to the login page.
     redirectToLoginPage() {
         console.log('LogoutUI: Redirecting to login page');
         window.location.href = '/CSCI314/public/index.html';
     }
 
-    // Static initializer with explicit page load checks
+    // Ensures the LogoutUI is properly initialized when the page loads.
     static {
         console.log('LogoutUI static initializer running');
         let isInitialized = false;
@@ -299,6 +309,7 @@ class ProcessLoginController {
         console.log('ProcessLoginController initialized');
     }
 
+    //Creates a user data object with username and password.
     createUserData(username, password) {
         console.log('Creating user data object');
         return {
@@ -307,6 +318,7 @@ class ProcessLoginController {
         };
     }
 
+    //Sends authentication request to the entity layer and handles the result.
     async authenticate(userData) {
         console.log('Processing login attempt for:', userData.username);
 
@@ -341,6 +353,7 @@ class ProcessLogoutController {
         this.entity = new UserAuthEntity();
     }
 
+    //Sends authentication request to the entity layer and handles the result.
     async processLogout() {
         try {
             // Call entity to logout
@@ -502,31 +515,31 @@ class UserAuthEntity {
         localStorage.removeItem('currentUsername');
     }
 
-    /**
-     * Check if there's an active session
-     */
-    async checkActiveSession() {
-        try {
-            const response = await fetch(`${this.apiBaseUrl}/active-session`);
-            return await response.json();
-        } catch (error) {
-            console.error('Active session check error:', error);
-            return { success: false, active: false, error: error.message };
-        }
-    }
+    // /**
+    //  * Check if there's an active session
+    //  */
+    // async checkActiveSession() {
+    //     try {
+    //         const response = await fetch(`${this.apiBaseUrl}/active-session`);
+    //         return await response.json();
+    //     } catch (error) {
+    //         console.error('Active session check error:', error);
+    //         return { success: false, active: false, error: error.message };
+    //     }
+    // }
 }
 
-// Create LoginUI instance
-console.log('Creating LoginUI instance');
-window.loginUI = new LoginUI();
-
-// Additional initialization to ensure the LoginUI is created after document load
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM fully loaded, ensuring LoginUI instance exists');
-    if (!window.loginUI) {
-        console.log('Creating LoginUI instance after DOM load');
-        window.loginUI = new LoginUI();
-    } else {
-        console.log('LoginUI instance already exists');
-    }
-});
+// // Create LoginUI instance
+// console.log('Creating LoginUI instance');
+// window.loginUI = new LoginUI();
+//
+// // Additional initialization to ensure the LoginUI is created after document load
+// document.addEventListener('DOMContentLoaded', () => {
+//     console.log('DOM fully loaded, ensuring LoginUI instance exists');
+//     if (!window.loginUI) {
+//         console.log('Creating LoginUI instance after DOM load');
+//         window.loginUI = new LoginUI();
+//     } else {
+//         console.log('LoginUI instance already exists');
+//     }
+// });

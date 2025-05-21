@@ -106,6 +106,9 @@ class HomeOwnerBookingListUI {
         });
     }
 
+    /**
+     * Executes search functionality based on user input in the search field.
+     */
     async performSearch() {
         if (!this.searchInput) return;
 
@@ -145,7 +148,7 @@ class HomeOwnerBookingListUI {
     }
 
     /**
-     * Load all bookings for the current user
+     * Fetches all bookings for the current user from the controller.
      */
     async loadBookings() {
         try {
@@ -180,7 +183,7 @@ class HomeOwnerBookingListUI {
     }
 
     /**
-     * Display bookings with optional filtering
+     * Renders the filtered bookings to the table with appropriate styling and sorting.
      */
     displayBookings() {
     // Debug: Log the first booking to see its structure
@@ -279,7 +282,7 @@ class HomeOwnerBookingListUI {
 }
 
 /**
- * Show a nice "no search results" message with a clear button
+ * Displays a message when no search results are found, with an option to clear the search.
  */
 showNoSearchResultsMessage(query) {
     // Create the no results container
@@ -323,7 +326,7 @@ showNoSearchResultsMessage(query) {
 }
 
 /**
- * Remove any existing no results message
+ * Removes any existing "no results found" messages from the DOM.
  */
 removeNoResultsMessage() {
     const existingNoResults = document.querySelector('.no-results-message');
@@ -333,7 +336,7 @@ removeNoResultsMessage() {
 }
 
     /**
-     * Create a booking table row
+     * Creates a table row element for a booking with formatted data and appropriate actions.
      */
     createBookingRow(booking) {
         const row = document.createElement('tr');
@@ -364,7 +367,7 @@ removeNoResultsMessage() {
     }
 
     /**
-     * Get appropriate booking action buttons based on status
+     * Returns action buttons (view/cancel) for a booking based on its status.
      */
     getBookingActions(booking) {
         const bookingId = booking.booking_id;
@@ -600,9 +603,7 @@ removeNoResultsMessage() {
         }
     }
 
-    /**
-     * Show a notification message
-     */
+    //Displays a temporary notification message to the user.
     showNotification(message, type = 'info') {
         // Create notification element if it doesn't exist
         let notification = document.getElementById('booking-notification');

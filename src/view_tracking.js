@@ -1,5 +1,4 @@
-// view-tracking.js
-// Functions for tracking listing views
+// Functions for tracking the number of views in each service
 
 // Function to record a view when the "View Details" button is clicked
 function recordListingView(listingId, viewSource = 'homepage') {
@@ -93,5 +92,5 @@ if (typeof module !== 'undefined' && module.exports) {
     };
 }
 
-// Initialize tracking (comment this out if you're importing this as a module)
+// Initialize tracking
 initViewTracking();

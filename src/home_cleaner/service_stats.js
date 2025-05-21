@@ -65,7 +65,7 @@ class ServiceStatsUI {
         await this.fetchAndDisplayStats(userId);
     }
 
-    // Fetch and display stats
+    // Fetches service statistics for the user and displays them in the UI.
     async fetchAndDisplayStats(userId) {
         this.displayLoading();
 
@@ -86,7 +86,7 @@ class ServiceStatsUI {
         }
     }
 
-    // Update displayed stats based on the selected time period
+    // Updates the displayed statistics based on the selected time period.
     async updateDisplayedStats(period) {
         console.log(`Displaying stats for period: ${period}`);
 
@@ -126,7 +126,7 @@ class ServiceStatsUI {
         }
     }
 
-    // Display the services table with the provided data
+    // Creates and displays an HTML table with the service statistics.
     displayServicesTable(services) {
         console.log('Displaying services table with data:', services);
 
@@ -172,7 +172,7 @@ class ServiceStatsUI {
         this.statsContainer.innerHTML = tableHTML;
     }
 
-    // Display loading state in the stats container
+    // Shows a loading message while data is being fetched.
     displayLoading() {
         this.statsContainer.innerHTML = '<div class="loading">Loading statistics...</div>';
     }
@@ -188,7 +188,7 @@ class ServiceStatsUI {
         `;
     }
 
-    // Display an error message
+    // Displays an error message when there's a problem loading statistics.
     displayError(error) {
         this.statsContainer.innerHTML = `
             <div class="no-stats">
@@ -199,7 +199,7 @@ class ServiceStatsUI {
         `;
     }
 
-    // Show a notification
+    // Shows a notification message with specified type (info, error, success, or warning).
     showNotification(message, type = 'info') {
         if (!this.notification) return;
 

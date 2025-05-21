@@ -19,6 +19,7 @@ class BookingUI {
 
         console.log('BookingUI static boundary initialization complete');
     }
+
     constructor() {
         console.log('Initializing BookingUI');
 
@@ -120,7 +121,7 @@ class BookingUI {
     }
 
     /**
-     * Initialize the booking system
+     * Gets user ID and service ID to initialize booking
      */
     initBookingSystem() {
         // Get current user info from localStorage
@@ -167,7 +168,7 @@ class BookingUI {
     }
 
     /**
-     * Fetch booked slots for this service and provider
+     * Gets already booked time slots for the provider
      */
     async fetchBookedSlots() {
         try {
@@ -432,7 +433,7 @@ class BookingUI {
     }
 
     /**
-     * Update the booking summary
+     * Shows booking summary with selected details
      */
     updateBookingSummary() {
         if (!this.summaryContainer) return;
@@ -469,7 +470,7 @@ class BookingUI {
     }
 
     /**
-     * Confirm the booking
+     * Creates the booking with selected details
      */
     async confirmBooking() {
         if (!this.selectedDate || !this.selectedTime || !this.serviceId || !this.providerId || !this.currentUserId) {

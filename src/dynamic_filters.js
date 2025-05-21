@@ -1,4 +1,5 @@
-// Add this code to a new file: dynamic_filters.js
+//Dynamically display the filter categories
+
 
 // Class to handle dynamic category filtering
 class DynamicCategoryFilters {
